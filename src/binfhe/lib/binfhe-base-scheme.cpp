@@ -67,6 +67,93 @@ RingGSWBTKey BinFHEScheme::KeyGen(const std::shared_ptr<BinFHECryptoParams> para
     return ek;
 }
 
+// wrapper for KeyGen methods
+NativePoly BinFHEScheme::RGSWKeyGen(const std::shared_ptr<BinFHECryptoParams> params) const {
+    const auto& LWEParams = params->GetLWEParams();
+
+    LWEPrivateKey skN;
+    // RingGSWBTKey ek;
+
+    ConstLWEKeyPair kpN = LWEscheme->KeyGenPair(LWEParams);
+    skN                 = kpN->secretKey;
+    // ek.Pkey             = kpN->publicKey;
+
+    // ek.KSkey = LWEscheme->KeySwitchGen(LWEParams, LWEsk, skN); should add another function for multiparty generation
+
+    auto& RGSWParams   = params->GetRingGSWParams();
+    auto polyParams    = RGSWParams->GetPolyParams();
+    NativePoly skNPoly = NativePoly(polyParams);
+    skNPoly.SetValues(skN->GetElement(), Format::COEFFICIENT);
+    skNPoly.SetFormat(Format::EVALUATION);
+
+    return skNPoly;
+}
+
+// Encryption as described in Section 5 of https://eprint.iacr.org/2014/816
+// skNTT corresponds to the secret key z
+RingGSWCiphertext BinFHEScheme::RGSWEncrypt(const std::shared_ptr<RingGSWCryptoParams> params, const NativePoly& skNTT,
+                                            const LWEPlaintext& m, bool leadFlag) const {
+    NativeInteger Q   = params->GetQ();
+    uint64_t q        = params->Getq().ConvertToInt();
+    uint32_t N        = params->GetN();
+    uint32_t digitsG  = params->GetDigitsG();
+    uint32_t digitsG2 = digitsG << 1;
+    auto polyParams   = params->GetPolyParams();
+    auto Gpow         = params->GetGPower();
+    auto result       = std::make_shared<RingGSWEvalKeyImpl>(digitsG2, 2);
+
+    DiscreteUniformGeneratorImpl<NativeVector> dug;
+    dug.SetModulus(Q);
+
+    // Reduce mod q (dealing with negative number as well)
+    // int64_t mm       = (((m % q) + q) % q) * (2 * N / q);
+    int64_t mm       = m % q;
+    bool isReducedMM = false;
+    if (mm >= N) {
+        mm -= N;
+        isReducedMM = true;
+    }
+
+    // tempA is introduced to minimize the number of NTTs
+    std::vector<NativePoly> tempA(digitsG2);
+
+    for (size_t i = 0; i < digitsG2; ++i) {
+        // populate result[i][0] with uniform random a
+        (*result)[i][0] = NativePoly(dug, polyParams, Format::COEFFICIENT);
+        tempA[i]        = (*result)[i][0];
+        // populate result[i][1] with error e
+        (*result)[i][1] = NativePoly(params->GetDgg(), polyParams, Format::COEFFICIENT);
+    }
+
+    for (size_t i = 0; i < digitsG; ++i) {
+        if (!isReducedMM) {
+            // Add G Multiple
+            (*result)[2 * i][0][mm].ModAddEq(Gpow[i], Q);
+            // [a,as+e] + X^m*G
+            (*result)[2 * i + 1][1][mm].ModAddEq(Gpow[i], Q);
+        }
+        else {
+            // Subtract G Multiple
+            (*result)[2 * i][0][mm].ModSubEq(Gpow[i], Q);
+            // [a,as+e] - X^m*G
+            (*result)[2 * i + 1][1][mm].ModSubEq(Gpow[i], Q);
+        }
+    }
+
+    // 3*digitsG2 NTTs are called
+    result->SetFormat(Format::EVALUATION);
+    for (size_t i = 0; i < digitsG2; ++i) {
+        tempA[i].SetFormat(Format::EVALUATION);
+        (*result)[i][1] += tempA[i] * skNTT;
+    }
+
+    return result;
+}
+
+// threshold automorphism key generation
+
+// sequential plaintext-ciphertext bootstrap key generation
+
 // Full evaluation as described in https://eprint.iacr.org/2020/086
 LWECiphertext BinFHEScheme::EvalBinGate(const std::shared_ptr<BinFHECryptoParams> params, BINGATE gate,
                                         const RingGSWBTKey& EK, ConstLWECiphertext ct1, ConstLWECiphertext ct2) const {

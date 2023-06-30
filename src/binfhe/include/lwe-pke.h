@@ -41,6 +41,7 @@
 #include "lwe-cryptoparameters.h"
 
 #include <memory>
+#include <vector>
 namespace lbcrypto {
 
 /**
@@ -83,6 +84,10 @@ public:
    * @return a shared pointer to the public key
    */
     LWEPublicKey PubKeyGen(const std::shared_ptr<LWECryptoParams> params, ConstLWEPrivateKey skN) const;
+
+    LWEKeyPair MultipartyKeyGen(const std::vector<LWEPrivateKey>& privateKeyVec,
+                                const std::shared_ptr<LWECryptoParams> params);
+    LWEKeyPair MultipartyKeyGen(LWEPublicKey publicKey);
 
     /**
    * Encrypts a bit using a secret key (symmetric key encryption)
@@ -129,6 +134,12 @@ public:
    */
     void Decrypt(const std::shared_ptr<LWECryptoParams> params, ConstLWEPrivateKey sk, ConstLWECiphertext ct,
                  LWEPlaintext* result, const LWEPlaintextModulus& p = 4) const;
+
+    void MultipartyDecryptLead(const std::shared_ptr<LWECryptoParams> params, ConstLWEPrivateKey sk,
+                               ConstLWECiphertext ct, LWEPlaintext* result, const LWEPlaintextModulus& p = 4) const;
+    void MultipartyDecryptMain(const std::shared_ptr<LWECryptoParams> params, ConstLWEPrivateKey sk,
+                               ConstLWECiphertext ct, LWEPlaintext* result, const LWEPlaintextModulus& p = 4) const;
+    void MultipartyDecryptFusion(const std::vector<LWECiphertext>& partialCiphertextVec, LWEPlaintext* plaintext) const;
 
     void EvalAddEq(LWECiphertext& ct1, ConstLWECiphertext ct2) const;
 

@@ -114,6 +114,63 @@ LWEPublicKey LWEEncryptionScheme::PubKeyGen(const std::shared_ptr<LWECryptoParam
     return std::make_shared<LWEPublicKeyImpl>(Av);
 }
 
+LWEKeyPair LWEEncryptionScheme::MultipartyKeyGen(const std::vector<LWEPrivateKey>& privateKeyVec,
+                                                 const std::shared_ptr<LWECryptoParams> params) {
+    LWEKeyPair keyPair;
+
+    // Private Key Generation
+    auto sk = privateKeyVec[0];
+    for (size_t i = 1; i < privateKeyVec.size(); i++) {
+        *sk += *privateKeyVec[i];
+    }
+
+    // Public Key Generation
+    auto pk = PubKeyGen(params, sk);
+
+    auto lweKeyPair = LWEKeyPairImpl(pk, sk);
+
+    // return the public key (A, v), private key sk pair
+    return std::make_shared<LWEKeyPairImpl>(lweKeyPair);
+}
+
+LWEKeyPair LWEEncryptionScheme::MultipartyKeyGen(const LWEPublicKey publicKey) {
+    LWEKeyPair keyPair;
+
+    auto A       = publicKey->GetA();
+    auto pv      = publicKey->Getv();
+    auto dim     = publicKey->GetLength();
+    auto modulus = publicKey->GetModulus();
+
+    // When PRE is not used, a joint key is computed
+    // DCRTPoly b = fresh ? (ns * e - a * s) : (ns * e - a * s + pk[0]);
+
+    // generate error vector e
+    DiscreteGaussianGeneratorImpl<NativeVector> dgg;
+    NativeVector e = dgg.GenerateVector(dim, modulus);
+
+    auto sk = KeyGen(dim, modulus);
+    // compute v = As + e
+    NativeVector v   = e;
+    NativeVector ske = sk->GetElement();
+    NativeInteger mu = modulus.ComputeMu();
+
+    for (size_t j = 0; j < dim; ++j) {
+        for (size_t i = 0; i < dim; ++i) {
+            v[j].ModAddEq(A[j][i].ModMulFast(ske[i], modulus, mu), modulus);
+        }
+    }
+
+    // joint public key As1 + e1 + As2 + e2
+    v.ModAddEq(pv);
+    // public key A, v
+    LWEPublicKeyImpl pki(A, v);
+    auto pk = std::make_shared<LWEPublicKeyImpl>(pki);
+
+    auto lweKeyPair = LWEKeyPairImpl(pk, sk);
+
+    return std::make_shared<LWEKeyPairImpl>(lweKeyPair);
+}
+
 // classical LWE encryption
 // a is a randomly uniform vector of dimension n; with integers mod q
 // b = a*s + e + m floor(q/4) is an integer mod q
@@ -251,6 +308,96 @@ void LWEEncryptionScheme::Decrypt(const std::shared_ptr<LWECryptoParams> params,
     std::cerr << error * mod.ConvertToDouble() / static_cast<double>(p) << std::endl;
 #endif
 
+    return;
+}
+
+void LWEEncryptionScheme::MultipartyDecryptLead(const std::shared_ptr<LWECryptoParams> params, ConstLWEPrivateKey sk,
+                                                ConstLWECiphertext ct, LWEPlaintext* result,
+                                                const LWEPlaintextModulus& p) const {
+    // Create local variables to speed up the computations
+    const NativeInteger& mod = ct->GetModulus();
+    if (mod % (p * 2) != 0 && mod.ConvertToInt() & (1 == 0)) {
+        std::string errMsg = "ERROR: ciphertext modulus q needs to be divisible by plaintext modulus p*2.";
+        OPENFHE_THROW(not_implemented_error, errMsg);
+    }
+
+    NativeVector a   = ct->GetA();
+    NativeVector s   = sk->GetElement();
+    uint32_t n       = s.GetLength();
+    NativeInteger mu = mod.ComputeMu();
+    s.SwitchModulus(mod);
+    NativeInteger inner(0);
+    for (size_t i = 0; i < n; ++i) {
+        inner += a[i].ModMulFast(s[i], mod, mu);
+    }
+    inner.ModEq(mod);
+
+    NativeInteger r = ct->GetB();
+
+    r.ModSubFastEq(inner, mod);
+
+    // Alternatively, rounding can be done as
+    // *result = (r.MultiplyAndRound(NativeInteger(4),q)).ConvertToInt();
+    // But the method below is a more efficient way of doing the rounding
+    // the idea is that Round(4/q x) = q/8 + Floor(4/q x)
+    r.ModAddFastEq((mod / (p * 2)), mod);
+
+    *result = ((NativeInteger(p) * r) / mod).ConvertToInt();
+
+    return;
+}
+void LWEEncryptionScheme::MultipartyDecryptMain(const std::shared_ptr<LWECryptoParams> params, ConstLWEPrivateKey sk,
+                                                ConstLWECiphertext ct, LWEPlaintext* result,
+                                                const LWEPlaintextModulus& p) const {
+    // TODO in the future we should add a check to make sure sk parameters match
+    // the ct parameters
+
+    // Create local variables to speed up the computations
+    const NativeInteger& mod = ct->GetModulus();
+    if (mod % (p * 2) != 0 && mod.ConvertToInt() & (1 == 0)) {
+        std::string errMsg = "ERROR: ciphertext modulus q needs to be divisible by plaintext modulus p*2.";
+        OPENFHE_THROW(not_implemented_error, errMsg);
+    }
+
+    NativeVector a   = ct->GetA();
+    NativeVector s   = sk->GetElement();
+    uint32_t n       = s.GetLength();
+    NativeInteger mu = mod.ComputeMu();
+    s.SwitchModulus(mod);
+    NativeInteger inner(0);
+    for (size_t i = 0; i < n; ++i) {
+        inner += a[i].ModMulFast(s[i], mod, mu);
+    }
+    inner.ModEq(mod);
+
+    NativeInteger r = inner;
+
+    // r.ModSubFastEq(inner, mod);
+
+    // Alternatively, rounding can be done as
+    // *result = (r.MultiplyAndRound(NativeInteger(4),q)).ConvertToInt();
+    // But the method below is a more efficient way of doing the rounding
+    // the idea is that Round(4/q x) = q/8 + Floor(4/q x)
+    r.ModAddFastEq((mod / (p * 2)), mod);
+
+    *result = ((NativeInteger(p) * r) / mod).ConvertToInt();
+
+    return;
+}
+void LWEEncryptionScheme::MultipartyDecryptFusion(const std::vector<LWECiphertext>& partialCiphertextVec,
+                                                  LWEPlaintext* plaintext) const {
+    // const auto cryptoParams =
+    //    std::dynamic_pointer_cast<CryptoParametersRLWE<Element>>(ciphertextVec[0]->GetCryptoParameters());
+
+    auto cv0 = ciphertextVec[0];
+
+    auto b = cv0[0];
+    for (size_t i = 1; i < ciphertextVec.size(); i++) {
+        auto cvi = ciphertextVec[i];
+        b += cvi[0];
+    }
+
+    *plaintext = b;
     return;
 }
 

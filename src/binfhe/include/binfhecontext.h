@@ -146,6 +146,12 @@ public:
    */
     LWEPrivateKey KeyGen() const;
 
+    LWEKeyPair MultipartyKeyGen(const std::vector<LWEPrivateKey>& privateKeyVec);
+
+    LWEKeyPair MultipartyKeyGen(const LWEPublicKey publicKey);
+
+    NativePoly RGSWKeygen();
+
     /**
    * Generates a public key, secret key pair for the main LWE scheme
    *
@@ -224,6 +230,9 @@ public:
    */
     LWESwitchingKey KeySwitchGen(ConstLWEPrivateKey sk, ConstLWEPrivateKey skN) const;
 
+    NativePoly RGSWKeyGen(const std::shared_ptr<BinFHECryptoParams> params) const;
+    RingGSWCiphertext RGSWEncrypt(const std::shared_ptr<RingGSWCryptoParams> params, const NativePoly& skNTT,
+                                  const LWEPlaintext& m, bool leadFlag) const;
     /**
    * Generates boostrapping keys
    *
@@ -231,6 +240,9 @@ public:
    * @param DiffQ BTKeyGen according to DiffQ instead of m_q if DiffQ != 0
    */
     void BTKeyGen(ConstLWEPrivateKey sk, KEYGEN_MODE keygenMode = SYM_ENCRYPT);
+
+    void MultipartyBTKeyGen(ConstLWEPrivateKey sk, RingGSWCiphertext rgsw1);
+    void MultipartyAutoKeygen();
 
     /**
    * Loads bootstrapping keys in the context (typically after deserializing)

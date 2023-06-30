@@ -29,37 +29,53 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //==================================================================================
 
-#ifndef _LWE_KEYPAIR_H_
-#define _LWE_KEYPAIR_H_
+#ifndef ACC_DM_MULTIPARTY_H
+#define ACC_DM_MULTIPARTY_H
 
-#include "lwe-privatekey.h"
-#include "lwe-publickey.h"
-#include "lwe-keyswitchkey.h"
-#include "lwe-keypair-fwd.h"
-#include "math/hal.h"
-#include "utils/serializable.h"
+#include "schemerns/rns-multiparty.h"
 
-#include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
-namespace lbcrypto {
 /**
- * @brief Class that stores the LWE scheme secret key, public key pair; ((A, b), s)
+ * @namespace lbcrypto
+ * The namespace of lbcrypto
  */
-class LWEKeyPairImpl {
+namespace lbcrypto {
+class MultipartyBFVRNS : public MultipartyRNS {
+    using ParmType = typename DCRTPoly::Params;
+    using IntType  = typename DCRTPoly::Integer;
+    using DugType  = typename DCRTPoly::DugType;
+    using DggType  = typename DCRTPoly::DggType;
+    using TugType  = typename DCRTPoly::TugType;
+
 public:
-    LWEPublicKey publicKey;
-    LWEPrivateKey secretKey;
+    virtual ~MultipartyBFVRNS() {}
 
-    LWEKeyPairImpl(LWEPublicKey Av, LWEPrivateKey s) : publicKey(Av), secretKey(s) {}
+    KeyPair<DCRTPoly> MultipartyKeyGen(CryptoContext<DCRTPoly> cc,
+                                       const std::vector<PrivateKey<DCRTPoly>>& privateKeyVec,
+                                       bool makeSparse) override;
 
-    bool good() {
-        return publicKey && secretKey;
+    KeyPair<DCRTPoly> MultipartyKeyGen(CryptoContext<DCRTPoly> cc, const PublicKey<DCRTPoly> publicKey, bool makeSparse,
+                                       bool fresh) override;
+
+    DecryptResult MultipartyDecryptFusion(const std::vector<Ciphertext<DCRTPoly>>& ciphertextVec,
+                                          NativePoly* plaintext) const override;
+
+    /////////////////////////////////////
+    // SERIALIZATION
+    /////////////////////////////////////
+
+    template <class Archive>
+    void save(Archive& ar, std::uint32_t const version) const {}
+
+    template <class Archive>
+    void load(Archive& ar, std::uint32_t const version) {}
+
+    std::string SerializedObjectName() const {
+        return "MultipartyBFVRNS";
     }
 };
-
 }  // namespace lbcrypto
 
-#endif  // _LWE_KEYPAIR_H_
+#endif

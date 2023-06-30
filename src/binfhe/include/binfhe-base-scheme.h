@@ -80,6 +80,9 @@ public:
             OPENFHE_THROW(config_error, "method is invalid");
     }
 
+    NativePoly RGSWKeyGen(const std::shared_ptr<BinFHECryptoParams> params) const;
+    RingGSWCiphertext RGSWEncrypt(const std::shared_ptr<RingGSWCryptoParams> params, const NativePoly& skNTT,
+                                  const LWEPlaintext& m, bool leadFlag) const;
     /**
    * Generates a refreshing key
    *
