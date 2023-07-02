@@ -68,6 +68,40 @@ RingGSWBTKey BinFHEScheme::KeyGen(const std::shared_ptr<BinFHECryptoParams> para
 }
 
 // wrapper for KeyGen methods
+RingGSWBTKey BinFHEScheme::MultipartyBTKeyGen(const std::shared_ptr<BinFHECryptoParams> params,
+                                              ConstLWEPrivateKey LWEsk, RingGSWACCKey prevbtkey, NativePoly zkey,
+                                              bool leadFlag, std::vector<std::vector<NativePoly>> acrsauto,
+                                              std::vector<std::vector<NativePoly>> acrs0, LWESwitchingKey prevkskey,
+                                              int32_t num_of_parties) const {
+    const auto& LWEParams = params->GetLWEParams();
+
+    const LWEPrivateKey skN = std::make_shared<LWEPrivateKeyImpl>(LWEPrivateKeyImpl(zkey.GetValues()));
+    RingGSWBTKey ek;
+
+    if (leadFlag) {
+        ek.KSkey = LWEscheme->KeySwitchGen(LWEParams, LWEsk, skN);
+    }
+    else {
+        ek.KSkey = LWEscheme->MultiPartyKeySwitchGen(LWEParams, LWEsk, skN, prevkskey);
+    }
+
+    auto& RGSWParams   = params->GetRingGSWParams();
+    auto polyParams    = RGSWParams->GetPolyParams();
+    NativePoly skNPoly = NativePoly(polyParams);
+    skNPoly.SetValues(skN->GetElement(), Format::COEFFICIENT);
+    skNPoly.SetFormat(Format::EVALUATION);
+
+    ek.BSkey = ACCscheme->MultiPartyKeyGenAcc(RGSWParams, skNPoly, LWEsk, prevbtkey, acrsauto, acrs0);
+
+    return ek;
+}
+
+RingGSWCiphertext RGSWEvalAdd(RingGSWCiphertext a, RingGSWCiphertext b) {
+    (**a) += (**b);
+    return a;
+}
+
+// wrapper for KeyGen methods
 NativePoly BinFHEScheme::RGSWKeyGen(const std::shared_ptr<BinFHECryptoParams> params) const {
     const auto& LWEParams = params->GetLWEParams();
 
@@ -89,54 +123,52 @@ NativePoly BinFHEScheme::RGSWKeyGen(const std::shared_ptr<BinFHECryptoParams> pa
     return skNPoly;
 }
 
+NativePoly Generateacrs(const std::shared_ptr<RingGSWCryptoParams> params) {
+    NativeInteger Q = params->GetQ();
+    auto polyParams = params->GetPolyParams();
+
+    DiscreteUniformGeneratorImpl<NativeVector> dug;
+    dug.SetModulus(Q);
+    return NativePoly(dug, polyParams, Format::COEFFICIENT);
+}
 // Encryption as described in Section 5 of https://eprint.iacr.org/2014/816
 // skNTT corresponds to the secret key z
-RingGSWCiphertext BinFHEScheme::RGSWEncrypt(const std::shared_ptr<RingGSWCryptoParams> params, const NativePoly& skNTT,
-                                            const LWEPlaintext& m, bool leadFlag) const {
-    NativeInteger Q   = params->GetQ();
-    uint64_t q        = params->Getq().ConvertToInt();
-    uint32_t N        = params->GetN();
+RingGSWCiphertext BinFHEScheme::RGSWEncrypt(const std::shared_ptr<RingGSWCryptoParams> params, NativePoly acrs,
+                                            const NativePoly& skNTT, const LWEPlaintext& m, bool leadFlag) const {
+    NativeInteger Q = params->GetQ();
+    uint64_t q      = params->Getq().ConvertToInt();
+    // uint32_t N        = params->GetN();
     uint32_t digitsG  = params->GetDigitsG();
     uint32_t digitsG2 = digitsG << 1;
     auto polyParams   = params->GetPolyParams();
     auto Gpow         = params->GetGPower();
     auto result       = std::make_shared<RingGSWEvalKeyImpl>(digitsG2, 2);
 
-    DiscreteUniformGeneratorImpl<NativeVector> dug;
-    dug.SetModulus(Q);
-
     // Reduce mod q (dealing with negative number as well)
     // int64_t mm       = (((m % q) + q) % q) * (2 * N / q);
-    int64_t mm       = m % q;
-    bool isReducedMM = false;
-    if (mm >= N) {
-        mm -= N;
-        isReducedMM = true;
-    }
+    int64_t mm = m % q;
 
     // tempA is introduced to minimize the number of NTTs
     std::vector<NativePoly> tempA(digitsG2);
 
     for (size_t i = 0; i < digitsG2; ++i) {
         // populate result[i][0] with uniform random a
-        (*result)[i][0] = NativePoly(dug, polyParams, Format::COEFFICIENT);
+        (*result)[i][0] = acrs;
         tempA[i]        = (*result)[i][0];
         // populate result[i][1] with error e
         (*result)[i][1] = NativePoly(params->GetDgg(), polyParams, Format::COEFFICIENT);
     }
 
+    NativeInteger mmn = NativeInteger(mm);
+    // std::vector<NativeInteger> mv(mm);
     for (size_t i = 0; i < digitsG; ++i) {
-        if (!isReducedMM) {
+        if (leadFlag) {
+            // compute mG
+            auto mG = mmn.ModMulEq(Gpow[i], Q);
             // Add G Multiple
-            (*result)[2 * i][0][mm].ModAddEq(Gpow[i], Q);
-            // [a,as+e] + X^m*G
-            (*result)[2 * i + 1][1][mm].ModAddEq(Gpow[i], Q);
-        }
-        else {
-            // Subtract G Multiple
-            (*result)[2 * i][0][mm].ModSubEq(Gpow[i], Q);
-            // [a,as+e] - X^m*G
-            (*result)[2 * i + 1][1][mm].ModSubEq(Gpow[i], Q);
+            (*result)[2 * i][0][0].ModAddEq(mG, Q);  // (Gpow[i], Q);
+            // [a,as+e] + X^m*G (X^m is represented as a coefficient vector where )
+            (*result)[2 * i + 1][1][0].ModAddEq(mG, Q);  // Gpow[i], Q);
         }
     }
 

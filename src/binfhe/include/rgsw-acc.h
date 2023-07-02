@@ -63,6 +63,12 @@ public:
         OPENFHE_THROW(not_implemented_error, "KeyGenACC operation not supported");
     }
 
+    virtual RingGSWACCKey MultiPartyKeyGenAcc(const std::shared_ptr<RingGSWCryptoParams> params,
+                                              const NativePoly& skNTT, ConstLWEPrivateKey LWEsk,
+                                              RingGSWACCKey prevbtkey, std::vector<std::vector<NativePoly>> acrsauto,
+                                              std::vector<std::vector<NativePoly>> acrs0) const {
+        OPENFHE_THROW(not_implemented_error, "KeyGenACC operation not supported");
+    }
     /**
    * Main accumulator function used in bootstrapping - AP variant
    *
@@ -87,7 +93,7 @@ public:
                               std::vector<NativePoly>& output) const;
 
     /**
-   * Takes a ring element input and outputs a vector of its digits, i.e., 
+   * Takes a ring element input and outputs a vector of its digits, i.e.,
    * decompose(a) = (a_0, ..., a_{d-1}) = R^d.
    * Only for automorphism key switching LMKCDEY
    *
@@ -95,8 +101,8 @@ public:
    * @param &input input ring element
    * @param output decomposed value
    */
-    void SignedDigitDecompose(const std::shared_ptr<RingGSWCryptoParams> params,
-    const NativePoly& input, std::vector<NativePoly>& output) const;
+    void SignedDigitDecompose(const std::shared_ptr<RingGSWCryptoParams> params, const NativePoly& input,
+                              std::vector<NativePoly>& output) const;
 };
 }  // namespace lbcrypto
 

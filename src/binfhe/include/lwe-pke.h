@@ -135,11 +135,12 @@ public:
     void Decrypt(const std::shared_ptr<LWECryptoParams> params, ConstLWEPrivateKey sk, ConstLWECiphertext ct,
                  LWEPlaintext* result, const LWEPlaintextModulus& p = 4) const;
 
-    void MultipartyDecryptLead(const std::shared_ptr<LWECryptoParams> params, ConstLWEPrivateKey sk,
-                               ConstLWECiphertext ct, LWEPlaintext* result, const LWEPlaintextModulus& p = 4) const;
-    void MultipartyDecryptMain(const std::shared_ptr<LWECryptoParams> params, ConstLWEPrivateKey sk,
-                               ConstLWECiphertext ct, LWEPlaintext* result, const LWEPlaintextModulus& p = 4) const;
-    void MultipartyDecryptFusion(const std::vector<LWECiphertext>& partialCiphertextVec, LWEPlaintext* plaintext) const;
+    LWECiphertext MultipartyDecryptLead(const std::shared_ptr<LWECryptoParams> params, ConstLWEPrivateKey sk,
+                                        ConstLWECiphertext ct, const LWEPlaintextModulus& p = 4) const;
+    LWECiphertext MultipartyDecryptMain(const std::shared_ptr<LWECryptoParams> params, ConstLWEPrivateKey sk,
+                                        ConstLWECiphertext ct, const LWEPlaintextModulus& p = 4) const;
+    void MultipartyDecryptFusion(const std::vector<LWECiphertext>& partialCiphertextVec, LWEPlaintext* plaintext,
+                                 const LWEPlaintextModulus& p = 4) const;
 
     void EvalAddEq(LWECiphertext& ct1, ConstLWECiphertext ct2) const;
 
@@ -173,7 +174,8 @@ public:
    */
     LWESwitchingKey KeySwitchGen(const std::shared_ptr<LWECryptoParams> params, ConstLWEPrivateKey sk,
                                  ConstLWEPrivateKey skN) const;
-
+    LWESwitchingKey MultiPartyKeySwitchGen(const std::shared_ptr<LWECryptoParams> params, ConstLWEPrivateKey sk,
+                                           ConstLWEPrivateKey skN, LWESwitchingKey prevkskey) const;
     /**
    * Switches ciphertext from (Q,N) to (Q,n)
    *

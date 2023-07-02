@@ -80,9 +80,20 @@ public:
             OPENFHE_THROW(config_error, "method is invalid");
     }
 
+    NativePoly Generateacrs(const std::shared_ptr<RingGSWCryptoParams> params);
     NativePoly RGSWKeyGen(const std::shared_ptr<BinFHECryptoParams> params) const;
-    RingGSWCiphertext RGSWEncrypt(const std::shared_ptr<RingGSWCryptoParams> params, const NativePoly& skNTT,
-                                  const LWEPlaintext& m, bool leadFlag) const;
+    RingGSWCiphertext RGSWEncrypt(const std::shared_ptr<RingGSWCryptoParams> params, NativePoly acrs,
+                                  const NativePoly& skNTT, const LWEPlaintext& m, bool leadFlag = false) const;
+
+    RingGSWCiphertext RGSWEvalAdd(RingGSWCiphertext a, RingGSWCiphertext b);
+    int32_t get_num_of_parties() {
+        return m_num_of_parties;
+    }
+
+    void set_num_of_parties(int32_t num_of_parties) {
+        m_num_of_parties = num_of_parties;
+    }
+
     /**
    * Generates a refreshing key
    *
@@ -95,6 +106,12 @@ public:
    */
     RingGSWBTKey KeyGen(const std::shared_ptr<BinFHECryptoParams> params, ConstLWEPrivateKey LWEsk,
                         KEYGEN_MODE keygenMode) const;
+
+    RingGSWBTKey MultipartyBTKeyGen(const std::shared_ptr<BinFHECryptoParams> params, ConstLWEPrivateKey LWEsk,
+                                    RingGSWACCKey prevbtkey, NativePoly zkey, bool leadFlag,
+                                    std::vector<std::vector<NativePoly>> acrsauto,
+                                    std::vector<std::vector<NativePoly>> acrs0, LWESwitchingKey prevkskey = NULL,
+                                    int32_t num_of_parties = 1) const;
 
     /**
    * Evaluates a binary gate (calls bootstrapping as a subroutine)
@@ -239,6 +256,9 @@ private:
 protected:
     std::shared_ptr<LWEEncryptionScheme> LWEscheme = std::make_shared<LWEEncryptionScheme>();
     std::shared_ptr<RingGSWAccumulator> ACCscheme  = nullptr;
+
+    // num of parties for threshold fhew/tfhe
+    int32_t m_num_of_parties = 1;
 };
 
 }  // namespace lbcrypto

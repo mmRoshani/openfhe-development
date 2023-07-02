@@ -55,7 +55,7 @@ namespace lbcrypto {
 class RingGSWEvalKeyImpl;
 
 using RingGSWEvalKey    = std::shared_ptr<RingGSWEvalKeyImpl>;
-using RingGSWCiphertext = std::shared_ptr<RingGSWEvalKeyImpl>;
+using RingGSWCiphertext = std::shared_ptr<RingGSWEvalKey>;
 
 using ConstRingGSWEvalKey = const std::shared_ptr<const RingGSWEvalKeyImpl>;
 
@@ -90,6 +90,22 @@ public:
 
     const RingGSWEvalKeyImpl& operator=(const RingGSWEvalKeyImpl&& rhs) {
         this->m_elements = rhs.m_elements;
+        return *this;
+    }
+
+    RingGSWEvalKeyImpl& operator+=(RingGSWEvalKeyImpl b) {
+        for (size_t i = 0; i < m_elements.size(); ++i)
+            // column size is assume to be the same
+            for (size_t j = 0; j < m_elements[0].size(); ++j)
+                this->m_elements[i][j] = this->m_elements[i][j] + b.m_elements[i][j];
+        return *this;
+    }
+
+    RingGSWEvalKeyImpl& operator+(RingGSWEvalKeyImpl b) {
+        for (size_t i = 0; i < m_elements.size(); ++i)
+            // column size is assume to be the same
+            for (size_t j = 0; j < m_elements[0].size(); ++j)
+                this->m_elements[i][j] = this->m_elements[i][j] + b.m_elements[i][j];
         return *this;
     }
 

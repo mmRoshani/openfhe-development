@@ -34,6 +34,7 @@
 
 #include "rgsw-acc.h"
 
+#include <vector>
 #include <memory>
 
 namespace lbcrypto {
@@ -60,6 +61,10 @@ public:
     RingGSWACCKey KeyGenAcc(const std::shared_ptr<RingGSWCryptoParams> params, const NativePoly& skNTT,
                             ConstLWEPrivateKey LWEsk) const override;
 
+    RingGSWACCKey MultiPartyKeyGenAcc(const std::shared_ptr<RingGSWCryptoParams> params, const NativePoly& skNTT,
+                                      ConstLWEPrivateKey LWEsk, RingGSWACCKey prevbtkey,
+                                      std::vector<std::vector<NativePoly>> acrsauto,
+                                      std::vector<std::vector<NativePoly>> acrs0) const override;
     /**
    * Main accumulator function used in bootstrapping - AP variant
    *
@@ -74,16 +79,19 @@ private:
     const uint32_t m_window = 10;
 
     RingGSWEvalKey KeyGenLMKCDEY(const std::shared_ptr<RingGSWCryptoParams> params, const NativePoly& skNTT,
-                            const LWEPlaintext& m) const;
-                            
+                                 const LWEPlaintext& m) const;
+
+    RingGSWEvalKey MultiPartyKeyGenAuto(const std::shared_ptr<RingGSWCryptoParams> params, const NativePoly& skNTT,
+                                        const LWEPlaintext& k, std::vector<NativePoly> acrsauto) const;
+
     RingGSWEvalKey KeyGenAuto(const std::shared_ptr<RingGSWCryptoParams> params, const NativePoly& skNTT,
-                            const LWEPlaintext& k) const;
+                              const LWEPlaintext& k) const;
 
     void AddToAccLMKCDEY(const std::shared_ptr<RingGSWCryptoParams> params, const RingGSWEvalKey ek,
-                    RLWECiphertext& acc) const;
+                         RLWECiphertext& acc) const;
 
-    void Automorphism(const std::shared_ptr<RingGSWCryptoParams> params, const NativeInteger &a,
-                        const RingGSWEvalKey ak, RLWECiphertext& acc) const;
+    void Automorphism(const std::shared_ptr<RingGSWCryptoParams> params, const NativeInteger& a,
+                      const RingGSWEvalKey ak, RLWECiphertext& acc) const;
 };
 
 }  // namespace lbcrypto
