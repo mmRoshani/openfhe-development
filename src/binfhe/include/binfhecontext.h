@@ -100,7 +100,7 @@ public:
    * @param method the bootstrapping method (DM or CGGI or LMKCDEY)
    * @return create the cryptocontext
    */
-    void GenerateBinFHEContext(BINFHE_PARAMSET set, BINFHE_METHOD method = GINX, int32_t num_of_parties = 1);
+    void GenerateBinFHEContext(BINFHE_PARAMSET set, BINFHE_METHOD method = GINX, uint32_t num_of_parties = 1);
 
     /**
    * Gets the refreshing key (used for serialization).
@@ -238,9 +238,11 @@ public:
 
     NativePoly Generateacrs();
     NativePoly RGSWKeyGen() const;
-    RingGSWCiphertext RGSWEncrypt(NativePoly acrs, const NativePoly& skNTT, const LWEPlaintext& m,
-                                  bool leadFlag = false) const;
-    RingGSWCiphertext RGSWEvalAdd(RingGSWCiphertext a, RingGSWCiphertext b);
+    // RingGSWCiphertext
+    RingGSWEvalKey RGSWEncrypt(NativePoly acrs, const NativePoly& skNTT, const LWEPlaintext& m,
+                               bool leadFlag = false) const;
+    // RingGSWCiphertext
+    RingGSWEvalKey RGSWEvalAdd(RingGSWEvalKey a, RingGSWEvalKey b);
     /**
    * Generates boostrapping keys
    *

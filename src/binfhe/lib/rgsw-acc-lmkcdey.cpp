@@ -65,14 +65,16 @@ RingGSWACCKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAcc(const std::shared_p
 
     NativeInteger gen = NativeInteger(5);
 
-    auto mkauto    = MultiPartyKeyGenAuto(params, skNTT, 2 * N - gen.ConvertToInt(), acrsauto[0]);
-    (*ek)[0][1][0] = (*(*prevbtkey)[0][1][0]) + (*mkauto);
-
+    auto mkauto = MultiPartyKeyGenAuto(params, skNTT, 2 * N - gen.ConvertToInt(), acrsauto[0]);
+    // todosara (*ek)[0][1][0] = (*prevbtkey)[0][1][0] + (*mkauto);
+    (*ek)[0][1][0] = mkauto;
     // m_window: window size, consider parameterization in the future
 #pragma omp parallel for
     for (size_t i = 1; i < m_window + 1; i++) {
-        (*ek)[0][1][i] = (*prevbtkey)[0][1][i] +
-                         MultiPartyKeyGenAuto(params, skNTT, gen.ModExp(i, 2 * N).ConvertToInt(), acrsauto[i]);
+        // todo sara (*ek)[0][1][i] = (*prevbtkey)[0][1][i] +
+        //                 MultiPartyKeyGenAuto(params, skNTT, gen.ModExp(i, 2 * N).ConvertToInt(), acrsauto[i]);
+        // fix + operator for ringGSWEvalKey
+        (*ek)[0][1][i] = MultiPartyKeyGenAuto(params, skNTT, gen.ModExp(i, 2 * N).ConvertToInt(), acrsauto[i]);
     }
 
     return ek;
@@ -82,7 +84,7 @@ RingGSWACCKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAcc(const std::shared_p
 RingGSWEvalKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAuto(const std::shared_ptr<RingGSWCryptoParams> params,
                                                                const NativePoly& skNTT, const LWEPlaintext& k,
                                                                std::vector<NativePoly> acrsauto) const {
-    NativeInteger Q  = params->GetQ();
+    // NativeInteger Q  = params->GetQ();
     uint32_t digitsG = params->GetDigitsG();
     auto polyParams  = params->GetPolyParams();
     auto Gpow        = params->GetGPower();

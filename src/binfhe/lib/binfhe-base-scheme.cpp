@@ -72,7 +72,7 @@ RingGSWBTKey BinFHEScheme::MultipartyBTKeyGen(const std::shared_ptr<BinFHECrypto
                                               ConstLWEPrivateKey LWEsk, RingGSWACCKey prevbtkey, NativePoly zkey,
                                               bool leadFlag, std::vector<std::vector<NativePoly>> acrsauto,
                                               std::vector<std::vector<NativePoly>> acrs0, LWESwitchingKey prevkskey,
-                                              int32_t num_of_parties) const {
+                                              uint32_t num_of_parties) const {
     const auto& LWEParams = params->GetLWEParams();
 
     const LWEPrivateKey skN = std::make_shared<LWEPrivateKeyImpl>(LWEPrivateKeyImpl(zkey.GetValues()));
@@ -96,8 +96,10 @@ RingGSWBTKey BinFHEScheme::MultipartyBTKeyGen(const std::shared_ptr<BinFHECrypto
     return ek;
 }
 
-RingGSWCiphertext RGSWEvalAdd(RingGSWCiphertext a, RingGSWCiphertext b) {
-    (**a) += (**b);
+// RingGSWCiphertext
+
+RingGSWEvalKey BinFHEScheme::RGSWEvalAdd(RingGSWEvalKey a, RingGSWEvalKey b) {
+    // todo sara (*a) += (*b);
     return a;
 }
 
@@ -123,7 +125,7 @@ NativePoly BinFHEScheme::RGSWKeyGen(const std::shared_ptr<BinFHECryptoParams> pa
     return skNPoly;
 }
 
-NativePoly Generateacrs(const std::shared_ptr<RingGSWCryptoParams> params) {
+NativePoly BinFHEScheme::Generateacrs(const std::shared_ptr<RingGSWCryptoParams> params) {
     NativeInteger Q = params->GetQ();
     auto polyParams = params->GetPolyParams();
 
@@ -133,8 +135,9 @@ NativePoly Generateacrs(const std::shared_ptr<RingGSWCryptoParams> params) {
 }
 // Encryption as described in Section 5 of https://eprint.iacr.org/2014/816
 // skNTT corresponds to the secret key z
-RingGSWCiphertext BinFHEScheme::RGSWEncrypt(const std::shared_ptr<RingGSWCryptoParams> params, NativePoly acrs,
-                                            const NativePoly& skNTT, const LWEPlaintext& m, bool leadFlag) const {
+// RingGSWCiphertext
+RingGSWEvalKey BinFHEScheme::RGSWEncrypt(const std::shared_ptr<RingGSWCryptoParams> params, NativePoly acrs,
+                                         const NativePoly& skNTT, const LWEPlaintext& m, bool leadFlag) const {
     NativeInteger Q = params->GetQ();
     uint64_t q      = params->Getq().ConvertToInt();
     // uint32_t N        = params->GetN();

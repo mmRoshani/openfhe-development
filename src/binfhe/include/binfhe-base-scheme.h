@@ -82,15 +82,17 @@ public:
 
     NativePoly Generateacrs(const std::shared_ptr<RingGSWCryptoParams> params);
     NativePoly RGSWKeyGen(const std::shared_ptr<BinFHECryptoParams> params) const;
-    RingGSWCiphertext RGSWEncrypt(const std::shared_ptr<RingGSWCryptoParams> params, NativePoly acrs,
-                                  const NativePoly& skNTT, const LWEPlaintext& m, bool leadFlag = false) const;
+    // RingGSWCiphertext
+    RingGSWEvalKey RGSWEncrypt(const std::shared_ptr<RingGSWCryptoParams> params, NativePoly acrs,
+                               const NativePoly& skNTT, const LWEPlaintext& m, bool leadFlag = false) const;
 
-    RingGSWCiphertext RGSWEvalAdd(RingGSWCiphertext a, RingGSWCiphertext b);
-    int32_t get_num_of_parties() {
+    // RingGSWCiphertext
+    RingGSWEvalKey RGSWEvalAdd(RingGSWEvalKey a, RingGSWEvalKey b);
+    uint32_t get_num_of_parties() {
         return m_num_of_parties;
     }
 
-    void set_num_of_parties(int32_t num_of_parties) {
+    void set_num_of_parties(uint32_t num_of_parties) {
         m_num_of_parties = num_of_parties;
     }
 
@@ -111,7 +113,7 @@ public:
                                     RingGSWACCKey prevbtkey, NativePoly zkey, bool leadFlag,
                                     std::vector<std::vector<NativePoly>> acrsauto,
                                     std::vector<std::vector<NativePoly>> acrs0, LWESwitchingKey prevkskey = NULL,
-                                    int32_t num_of_parties = 1) const;
+                                    uint32_t num_of_parties = 1) const;
 
     /**
    * Evaluates a binary gate (calls bootstrapping as a subroutine)
@@ -258,7 +260,7 @@ protected:
     std::shared_ptr<RingGSWAccumulator> ACCscheme  = nullptr;
 
     // num of parties for threshold fhew/tfhe
-    int32_t m_num_of_parties = 1;
+    uint32_t m_num_of_parties = 1;
 };
 
 }  // namespace lbcrypto

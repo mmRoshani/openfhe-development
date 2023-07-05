@@ -54,8 +54,8 @@ namespace lbcrypto {
 
 class RingGSWEvalKeyImpl;
 
-using RingGSWEvalKey    = std::shared_ptr<RingGSWEvalKeyImpl>;
-using RingGSWCiphertext = std::shared_ptr<RingGSWEvalKey>;
+using RingGSWEvalKey = std::shared_ptr<RingGSWEvalKeyImpl>;
+// using RingGSWCiphertext = std::shared_ptr<RingGSWEvalKey>;
 
 using ConstRingGSWEvalKey = const std::shared_ptr<const RingGSWEvalKeyImpl>;
 

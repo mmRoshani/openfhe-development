@@ -111,7 +111,7 @@ void BinFHEContext::GenerateBinFHEContext(BINFHE_PARAMSET set, bool arbFunc, uin
 #endif
 }
 
-void BinFHEContext::GenerateBinFHEContext(BINFHE_PARAMSET set, BINFHE_METHOD method, int32_t num_of_parties) {
+void BinFHEContext::GenerateBinFHEContext(BINFHE_PARAMSET set, BINFHE_METHOD method, uint32_t num_of_parties) {
     struct BinFHEContextParams {
         // for intermediate prime, modulus for RingGSW / RLWE used in bootstrapping
         usint numberBits;
@@ -247,6 +247,7 @@ LWECiphertext BinFHEContext::Encrypt(ConstLWEPublicKey pk, LWEPlaintext m, BINFH
                                      const NativeInteger& mod) const {
     const auto& LWEParams = m_params->GetLWEParams();
 
+    std::cout << "here in pk encrypt" << std::endl;
     LWECiphertext ct = (mod == 0) ? m_LWEscheme->EncryptN(LWEParams, pk, m, p, LWEParams->GetQ()) :
                                     m_LWEscheme->EncryptN(LWEParams, pk, m, p, mod);
 
@@ -289,7 +290,7 @@ LWECiphertext BinFHEContext::MultipartyDecryptLead(ConstLWEPrivateKey sk, ConstL
 LWECiphertext BinFHEContext::MultipartyDecryptMain(ConstLWEPrivateKey sk, ConstLWECiphertext ct,
                                                    const LWEPlaintextModulus& p) const {
     auto& LWEParams = m_params->GetLWEParams();
-    m_LWEscheme->MultipartyDecryptMain(LWEParams, sk, ct, p);
+    return m_LWEscheme->MultipartyDecryptMain(LWEParams, sk, ct, p);
 }
 void BinFHEContext::MultipartyDecryptFusion(const std::vector<LWECiphertext>& partialCiphertextVec,
                                             LWEPlaintext* plaintext, const LWEPlaintextModulus& p) const {
@@ -308,13 +309,15 @@ NativePoly BinFHEContext::Generateacrs() {
 NativePoly BinFHEContext::RGSWKeyGen() const {
     return m_binfhescheme->RGSWKeyGen(m_params);
 }
-RingGSWCiphertext BinFHEContext::RGSWEncrypt(NativePoly acrs, const NativePoly& skNTT, const LWEPlaintext& m,
-                                             bool leadFlag) const {
+// RingGSWCiphertext
+RingGSWEvalKey BinFHEContext::RGSWEncrypt(NativePoly acrs, const NativePoly& skNTT, const LWEPlaintext& m,
+                                          bool leadFlag) const {
     auto& RGSWParams = m_params->GetRingGSWParams();
     return m_binfhescheme->RGSWEncrypt(RGSWParams, acrs, skNTT, m, leadFlag);
 }
 
-RingGSWCiphertext BinFHEContext::RGSWEvalAdd(RingGSWCiphertext a, RingGSWCiphertext b) {
+// RingGSWCiphertext
+RingGSWEvalKey BinFHEContext::RGSWEvalAdd(RingGSWEvalKey a, RingGSWEvalKey b) {
     return m_binfhescheme->RGSWEvalAdd(a, b);
 }
 
