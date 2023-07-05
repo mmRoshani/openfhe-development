@@ -94,7 +94,7 @@ RingGSWBTKey BinFHEScheme::MultiPartyKeyGen(const std::shared_ptr<BinFHECryptoPa
 RingGSWBTKey BinFHEScheme::MultipartyBTKeyGen(const std::shared_ptr<BinFHECryptoParams> params,
                                               ConstLWEPrivateKey LWEsk, RingGSWACCKey prevbtkey, NativePoly zkey,
                                               bool leadFlag, std::vector<std::vector<NativePoly>> acrsauto,
-                                              std::vector<std::vector<NativePoly>> acrs0, LWESwitchingKey prevkskey,
+                                              std::vector<RingGSWEvalKey> rgswenc0, LWESwitchingKey prevkskey,
                                               uint32_t num_of_parties) const {
     const auto& LWEParams = params->GetLWEParams();
 
@@ -116,7 +116,7 @@ RingGSWBTKey BinFHEScheme::MultipartyBTKeyGen(const std::shared_ptr<BinFHECrypto
     skNPoly.SetValues(skN->GetElement(), Format::COEFFICIENT);
     skNPoly.SetFormat(Format::EVALUATION);
 
-    ek.BSkey = ACCscheme->MultiPartyKeyGenAcc(RGSWParams, skNPoly, LWEsk, prevbtkey, acrsauto, acrs0);
+    ek.BSkey = ACCscheme->MultiPartyKeyGenAcc(RGSWParams, skNPoly, LWEsk, prevbtkey, acrsauto, rgswenc0);
 
     return ek;
 }

@@ -133,6 +133,29 @@ int main() {
         }
     }
 
+    // this vector is only to simulate the exchange of rgswencrypt with zi in the loop as every node
+    // exchanges the rgswencrypt(0) with respect to its key. In a real implementation, this vector zvec does not exist
+    std::vector<NativePoly> zvec;
+    zvec.push_back(z1);
+    zvec.push_back(z2);
+    zvec.push_back(z3);
+    zvec.push_back(z4);
+    zvec.push_back(z5);
+
+    // generate encryptions of 0 for multiparty btkeygen
+    std::vector<std::vector<RingGSWEvalKey>> rgswenc0;
+    for (uint32_t i = 0; i < n; i++) {                   // for gen of encryption of 0 at one iteration
+        for (uint32_t j = 0; j < num_of_parties; j++) {  // dimension of secret
+            RingGSWEvalKey rgsw0_1 = cc.RGSWEncrypt(acrs0[0][1][i], zvec[0], 0, true);
+            RingGSWEvalKey rgswadd = rgsw0_1;
+            for (uint32_t k = 1; k < num_of_parties; k++) {
+                auto rgsw0_i = cc.RGSWEncrypt(acrs0[0][1][i], zvec[k], 0);
+                rgswadd      = cc.RGSWEvalAdd(rgsw0_i, rgswadd);
+            }
+            rgswenc0[i][j] = rgswadd;
+        }
+    }
+
     // generate acrs for rgsw encryptions of 0 for automorphism keygen
     uint32_t digitsG  = cc.GetParams()->GetRingGSWParams()->GetDigitsG();
     uint32_t m_window = 10;  // need to be sure this is the same value in rgsw-acc-lmkcdey.h
@@ -143,15 +166,15 @@ int main() {
         }
     }
     // Generate the bootstrapping keys (refresh, switching and public keys)
-    cc.MultipartyBTKeyGen(sk1, rgswe1, z1, true, acrsauto, acrs0[1]);
+    cc.MultipartyBTKeyGen(sk1, rgswe1, z1, true, acrsauto, rgswenc0[0]);
 
-    cc.MultipartyBTKeyGen(sk2, cc.GetRefreshKey(), z2, false, acrsauto, acrs0[1], cc.GetSwitchKey());
+    cc.MultipartyBTKeyGen(sk2, cc.GetRefreshKey(), z2, false, acrsauto, rgswenc0[1], cc.GetSwitchKey());
 
-    cc.MultipartyBTKeyGen(sk3, cc.GetRefreshKey(), z3, false, acrsauto, acrs0[2], cc.GetSwitchKey());
+    cc.MultipartyBTKeyGen(sk3, cc.GetRefreshKey(), z3, false, acrsauto, rgswenc0[2], cc.GetSwitchKey());
 
-    cc.MultipartyBTKeyGen(sk4, cc.GetRefreshKey(), z4, false, acrsauto, acrs0[3], cc.GetSwitchKey());
+    cc.MultipartyBTKeyGen(sk4, cc.GetRefreshKey(), z4, false, acrsauto, rgswenc0[3], cc.GetSwitchKey());
 
-    cc.MultipartyBTKeyGen(sk5, cc.GetRefreshKey(), z5, false, acrsauto, acrs0[4], cc.GetSwitchKey());
+    cc.MultipartyBTKeyGen(sk5, cc.GetRefreshKey(), z5, false, acrsauto, rgswenc0[4], cc.GetSwitchKey());
 
     // cc.insertRefreshKey(rgswp5);
 

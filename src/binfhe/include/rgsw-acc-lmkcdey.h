@@ -64,7 +64,7 @@ public:
     RingGSWACCKey MultiPartyKeyGenAcc(const std::shared_ptr<RingGSWCryptoParams> params, const NativePoly& skNTT,
                                       ConstLWEPrivateKey LWEsk, RingGSWACCKey prevbtkey,
                                       std::vector<std::vector<NativePoly>> acrsauto,
-                                      std::vector<std::vector<NativePoly>> acrs0) const override;
+                                      std::vector<RingGSWEvalKey> rgswenc0) const override;
     /**
    * Main accumulator function used in bootstrapping - AP variant
    *
@@ -77,6 +77,9 @@ public:
 
 private:
     const uint32_t m_window = 10;
+
+    RingGSWEvalKey RGSWBTEvalMult(const std::shared_ptr<RingGSWCryptoParams> params, RingGSWEvalKey prevbtkey,
+                                  const NativePoly& skNTT, ConstLWEPrivateKey LWEsk) const;
 
     RingGSWEvalKey KeyGenLMKCDEY(const std::shared_ptr<RingGSWCryptoParams> params, const NativePoly& skNTT,
                                  const LWEPlaintext& m) const;

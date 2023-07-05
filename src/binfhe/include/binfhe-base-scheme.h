@@ -114,9 +114,8 @@ public:
                                   bool leadFlag = true) const;
     RingGSWBTKey MultipartyBTKeyGen(const std::shared_ptr<BinFHECryptoParams> params, ConstLWEPrivateKey LWEsk,
                                     RingGSWACCKey prevbtkey, NativePoly zkey, bool leadFlag,
-                                    std::vector<std::vector<NativePoly>> acrsauto,
-                                    std::vector<std::vector<NativePoly>> acrs0, LWESwitchingKey prevkskey = NULL,
-                                    uint32_t num_of_parties = 1) const;
+                                    std::vector<std::vector<NativePoly>> acrsauto, std::vector<RingGSWEvalKey> rgswenc0,
+                                    LWESwitchingKey prevkskey = NULL, uint32_t num_of_parties = 1) const;
 
     /**
    * Evaluates a binary gate (calls bootstrapping as a subroutine)

@@ -254,7 +254,7 @@ public:
     void BTKeyGen(ConstLWEPrivateKey sk, KEYGEN_MODE keygenMode = SYM_ENCRYPT);
 
     void MultipartyBTKeyGen(ConstLWEPrivateKey sk, RingGSWACCKey prevbtkey, NativePoly zkey, bool leadFlag,
-                            std::vector<std::vector<NativePoly>> acrsauto, std::vector<std::vector<NativePoly>> acrs0,
+                            std::vector<std::vector<NativePoly>> acrsauto, std::vector<RingGSWEvalKey> rgswenc0,
                             LWESwitchingKey prevkskey = NULL);
     void MultipartyAutoKeygen();
 

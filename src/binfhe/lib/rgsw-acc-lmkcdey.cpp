@@ -40,7 +40,7 @@ RingGSWACCKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAcc(const std::shared_p
                                                              const NativePoly& skNTT, ConstLWEPrivateKey LWEsk,
                                                              RingGSWACCKey prevbtkey,
                                                              std::vector<std::vector<NativePoly>> acrsauto,
-                                                             std::vector<std::vector<NativePoly>> acrs0) const {
+                                                             std::vector<RingGSWEvalKey> rgswenc0) const {
     auto sv         = LWEsk->GetElement();
     int32_t mod     = sv.GetModulus().ConvertToInt();
     int32_t modHalf = mod >> 1;
@@ -61,6 +61,7 @@ RingGSWACCKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAcc(const std::shared_p
         // compute plaintext-ciphertext multiplication here
         // (*ek)[0][0][i] = KeyGenLMKCDEY(params, skNTT, s);
         //***********************
+        (*ek)[0][0][i] = RGSWBTEvalMult(params, (*prevbtkey)[0][0][i], skNTT, LWEsk);
     }
 
     NativeInteger gen = NativeInteger(5);
@@ -80,6 +81,21 @@ RingGSWACCKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAcc(const std::shared_p
     return ek;
 }
 
+RingGSWEvalKey RingGSWAccumulatorLMKCDEY::RGSWBTEvalMult(const std::shared_ptr<RingGSWCryptoParams> params,
+                                                         RingGSWEvalKey prevbtkey, const NativePoly& skNTT,
+                                                         ConstLWEPrivateKey LWEsk) const {
+    uint32_t digitsG        = params->GetDigitsG();
+    uint32_t digitsG2       = digitsG << 1;
+    RingGSWEvalKey newbtkey = std::make_shared<RingGSWEvalKeyImpl>(digitsG2, 2);
+
+    // perform the multiplication
+    for (uint32_t i = 0; i < digitsG2; i++) {
+        for (uint32_t j = 0; j < 2; j++) {
+            (*newbtkey)[i][j] += (*prevbtkey)[i][j];
+        }
+    }
+    return newbtkey;
+}
 // Generation of an autormorphism key
 RingGSWEvalKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAuto(const std::shared_ptr<RingGSWCryptoParams> params,
                                                                const NativePoly& skNTT, const LWEPlaintext& k,
