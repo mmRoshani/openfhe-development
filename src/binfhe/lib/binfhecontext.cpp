@@ -198,9 +198,23 @@ LWEKeyPair BinFHEContext::MultipartyKeyGen(const std::vector<LWEPrivateKey>& pri
     return m_LWEscheme->MultipartyKeyGen(privateKeyVec, LWEParams);
 }
 
-LWEKeyPair BinFHEContext::MultipartyKeyGen(const LWEPublicKey publicKey) {
+void BinFHEContext::MultiPartyKeyGen(ConstLWEPrivateKey LWEsk, const NativePoly zN, const LWEPublicKey publicKey,
+                                     LWESwitchingKey prevkskey, bool leadFlag) {
+    auto& RGSWParams = m_params->GetRingGSWParams();
+
+    auto temp = RGSWParams->GetBaseG();
+
+    if (m_BTKey_map.size() != 0) {
+        m_BTKey = m_BTKey_map[temp];
+    }
+    else {
+        m_BTKey           = m_binfhescheme->MultiPartyKeyGen(m_params, LWEsk, zN, publicKey, prevkskey, leadFlag);
+        m_BTKey_map[temp] = m_BTKey;
+    }
+}
+LWEPublicKey BinFHEContext::MultipartyPubKeyGen(const LWEPrivateKey skN, const LWEPublicKey publicKey) {
     // auto& LWEParams = m_params->GetLWEParams();
-    return m_LWEscheme->MultipartyKeyGen(publicKey);
+    return m_LWEscheme->MultipartyPubKeyGen(skN, publicKey);
 }
 
 NativePoly BinFHEContext::RGSWKeygen() {
@@ -247,7 +261,6 @@ LWECiphertext BinFHEContext::Encrypt(ConstLWEPublicKey pk, LWEPlaintext m, BINFH
                                      const NativeInteger& mod) const {
     const auto& LWEParams = m_params->GetLWEParams();
 
-    std::cout << "here in pk encrypt" << std::endl;
     LWECiphertext ct = (mod == 0) ? m_LWEscheme->EncryptN(LWEParams, pk, m, p, LWEParams->GetQ()) :
                                     m_LWEscheme->EncryptN(LWEParams, pk, m, p, mod);
 

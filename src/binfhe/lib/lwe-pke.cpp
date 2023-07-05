@@ -133,7 +133,7 @@ LWEKeyPair LWEEncryptionScheme::MultipartyKeyGen(const std::vector<LWEPrivateKey
     return std::make_shared<LWEKeyPairImpl>(lweKeyPair);
 }
 
-LWEKeyPair LWEEncryptionScheme::MultipartyKeyGen(const LWEPublicKey publicKey) {
+LWEPublicKey LWEEncryptionScheme::MultipartyPubKeyGen(const LWEPrivateKey sk, const LWEPublicKey publicKey) {
     LWEKeyPair keyPair;
 
     auto A       = publicKey->GetA();
@@ -148,7 +148,7 @@ LWEKeyPair LWEEncryptionScheme::MultipartyKeyGen(const LWEPublicKey publicKey) {
     DiscreteGaussianGeneratorImpl<NativeVector> dgg;
     NativeVector e = dgg.GenerateVector(dim, modulus);
 
-    auto sk = KeyGen(dim, modulus);
+    // auto sk = KeyGen(dim, modulus);
     // compute v = As + e
     NativeVector v   = e;
     NativeVector ske = sk->GetElement();
@@ -166,9 +166,9 @@ LWEKeyPair LWEEncryptionScheme::MultipartyKeyGen(const LWEPublicKey publicKey) {
     LWEPublicKeyImpl pki(A, v);
     auto pk = std::make_shared<LWEPublicKeyImpl>(pki);
 
-    auto lweKeyPair = LWEKeyPairImpl(pk, sk);
+    // auto lweKeyPair = LWEKeyPairImpl(pk, sk);
 
-    return std::make_shared<LWEKeyPairImpl>(lweKeyPair);
+    return pk;
 }
 
 // classical LWE encryption
@@ -248,7 +248,6 @@ LWECiphertext LWEEncryptionScheme::EncryptN(const std::shared_ptr<LWECryptoParam
     for (size_t i = 0; i < N; ++i) {
         b.ModAddEq(bp[i].ModMulFast(sp[i], mod, mu), mod);
     }
-
     return std::make_shared<LWECiphertextImpl>(LWECiphertextImpl(a, b));
 }
 

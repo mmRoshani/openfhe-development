@@ -49,35 +49,51 @@ int main() {
     // classical computer attacks.
     cc.GenerateBinFHEContext(STD128, LMKCDEY, num_of_parties);  // number of parties is 5
 
-    // Generate the secret key
+    // Generate the secret keys s1, z1
     auto sk1 = cc.KeyGen();
-
-    std::cout << "after first keygen" << std::endl;
-    // verifying public key encrypt and decrypt without bootstrap
-    // Generate the secret, public key pair
-    auto pk1 = cc.PubKeyGen(sk1);
-    auto kp2 = cc.MultipartyKeyGen(pk1);
-    auto kp3 = cc.MultipartyKeyGen(kp2->publicKey);
-    auto kp4 = cc.MultipartyKeyGen(kp3->publicKey);
-    auto kp5 = cc.MultipartyKeyGen(kp4->publicKey);
-
-    // common lwe public key
-    auto kp = kp5;
-
-    std::cout << "after all keygen" << std::endl;
-    // LARGE_DIM specifies the dimension of the output ciphertext
-    auto ct1 = cc.Encrypt(kp->publicKey, 1);
-    auto ct2 = cc.Encrypt(kp->publicKey, 0);
-
-    std::cout << "after encrypt" << std::endl;
+    // auto skN1 = cc.KeyGenN();
     // generate RGSW secret key z_1, ..., z_5
     auto z1 = cc.RGSWKeygen();
+
+    // generate public key, key switching key for the secrets
+    cc.MultiPartyKeyGen(sk1, z1, cc.GetPublicKey(), cc.GetSwitchKey(), true);
+
+    auto sk2 = cc.KeyGen();
+    // auto skN2 = cc.KeyGenN();
     auto z2 = cc.RGSWKeygen();
+
+    // generate public key, key switching key for the secrets
+    cc.MultiPartyKeyGen(sk2, z2, cc.GetPublicKey(), cc.GetSwitchKey(), false);
+
+    auto sk3 = cc.KeyGen();
+    // auto skN3 = cc.KeyGenN();
     auto z3 = cc.RGSWKeygen();
+
+    // generate public key, key switching key for the secrets
+    cc.MultiPartyKeyGen(sk3, z3, cc.GetPublicKey(), cc.GetSwitchKey(), false);
+
+    auto sk4 = cc.KeyGen();
+    // auto skN4 = cc.KeyGenN();
     auto z4 = cc.RGSWKeygen();
+
+    // generate public key, key switching key for the secrets
+    cc.MultiPartyKeyGen(sk4, z4, cc.GetPublicKey(), cc.GetSwitchKey(), false);
+
+    auto sk5 = cc.KeyGen();
+    // auto skN5 = cc.KeyGenN();
     auto z5 = cc.RGSWKeygen();
 
-    std::cout << "after zi keygen" << std::endl;
+    // generate public key, key switching key for the secrets
+    cc.MultiPartyKeyGen(sk5, z5, cc.GetPublicKey(), cc.GetSwitchKey(), false);
+    // common lwe public key
+    auto pk = cc.GetPublicKey();
+
+    // LARGE_DIM specifies the dimension of the output ciphertext
+    auto ct1 = cc.Encrypt(pk, 1);
+    auto ct2 = cc.Encrypt(pk, 0);
+
+    std::cout << "after encrypt" << std::endl;
+
     // distributed generation of RGSW_{z_*}(1)
     // generate a_{crs}
 
@@ -129,13 +145,13 @@ int main() {
     // Generate the bootstrapping keys (refresh, switching and public keys)
     cc.MultipartyBTKeyGen(sk1, rgswe1, z1, true, acrsauto, acrs0[1]);
 
-    cc.MultipartyBTKeyGen(kp2->secretKey, cc.GetRefreshKey(), z2, false, acrsauto, acrs0[1], cc.GetSwitchKey());
+    cc.MultipartyBTKeyGen(sk2, cc.GetRefreshKey(), z2, false, acrsauto, acrs0[1], cc.GetSwitchKey());
 
-    cc.MultipartyBTKeyGen(kp3->secretKey, cc.GetRefreshKey(), z3, false, acrsauto, acrs0[2], cc.GetSwitchKey());
+    cc.MultipartyBTKeyGen(sk3, cc.GetRefreshKey(), z3, false, acrsauto, acrs0[2], cc.GetSwitchKey());
 
-    cc.MultipartyBTKeyGen(kp4->secretKey, cc.GetRefreshKey(), z4, false, acrsauto, acrs0[3], cc.GetSwitchKey());
+    cc.MultipartyBTKeyGen(sk4, cc.GetRefreshKey(), z4, false, acrsauto, acrs0[3], cc.GetSwitchKey());
 
-    cc.MultipartyBTKeyGen(kp5->secretKey, cc.GetRefreshKey(), z5, false, acrsauto, acrs0[4], cc.GetSwitchKey());
+    cc.MultipartyBTKeyGen(sk5, cc.GetRefreshKey(), z5, false, acrsauto, acrs0[4], cc.GetSwitchKey());
 
     // cc.insertRefreshKey(rgswp5);
 
@@ -151,10 +167,10 @@ int main() {
     // decryption check before computation
     std::vector<LWECiphertext> pct;
     auto pct1 = cc.MultipartyDecryptLead(sk1, ctAND1);
-    auto pct2 = cc.MultipartyDecryptMain(kp2->secretKey, ctAND1);
-    auto pct3 = cc.MultipartyDecryptMain(kp3->secretKey, ctAND1);
-    auto pct4 = cc.MultipartyDecryptMain(kp4->secretKey, ctAND1);
-    auto pct5 = cc.MultipartyDecryptMain(kp5->secretKey, ctAND1);
+    auto pct2 = cc.MultipartyDecryptMain(sk2, ctAND1);
+    auto pct3 = cc.MultipartyDecryptMain(sk3, ctAND1);
+    auto pct4 = cc.MultipartyDecryptMain(sk4, ctAND1);
+    auto pct5 = cc.MultipartyDecryptMain(sk5, ctAND1);
 
     pct.push_back(pct1);
     pct.push_back(pct2);

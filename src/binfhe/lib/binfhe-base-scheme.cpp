@@ -67,6 +67,29 @@ RingGSWBTKey BinFHEScheme::KeyGen(const std::shared_ptr<BinFHECryptoParams> para
     return ek;
 }
 
+RingGSWBTKey BinFHEScheme::MultiPartyKeyGen(const std::shared_ptr<BinFHECryptoParams> params, ConstLWEPrivateKey LWEsk,
+                                            const NativePoly zN, const LWEPublicKey publicKey,
+                                            LWESwitchingKey prevkskey, bool leadFlag) const {
+    RingGSWBTKey ek;
+    LWEPublicKey pkN;
+    const auto& LWEParams = params->GetLWEParams();
+
+    const LWEPrivateKey LWEskN = std::make_shared<LWEPrivateKeyImpl>(LWEPrivateKeyImpl(zN.GetValues()));
+
+    if (leadFlag) {
+        pkN      = LWEscheme->PubKeyGen(LWEParams, LWEskN);
+        ek.KSkey = LWEscheme->KeySwitchGen(LWEParams, LWEsk, LWEskN);
+    }
+    else {
+        pkN      = LWEscheme->MultipartyPubKeyGen(LWEskN, publicKey);
+        ek.KSkey = LWEscheme->MultiPartyKeySwitchGen(LWEParams, LWEsk, LWEskN, prevkskey);
+    }
+
+    ek.Pkey = pkN;
+
+    return ek;
+}
+
 // wrapper for KeyGen methods
 RingGSWBTKey BinFHEScheme::MultipartyBTKeyGen(const std::shared_ptr<BinFHECryptoParams> params,
                                               ConstLWEPrivateKey LWEsk, RingGSWACCKey prevbtkey, NativePoly zkey,
@@ -78,12 +101,14 @@ RingGSWBTKey BinFHEScheme::MultipartyBTKeyGen(const std::shared_ptr<BinFHECrypto
     const LWEPrivateKey skN = std::make_shared<LWEPrivateKeyImpl>(LWEPrivateKeyImpl(zkey.GetValues()));
     RingGSWBTKey ek;
 
+#if 0
     if (leadFlag) {
         ek.KSkey = LWEscheme->KeySwitchGen(LWEParams, LWEsk, skN);
     }
     else {
         ek.KSkey = LWEscheme->MultiPartyKeySwitchGen(LWEParams, LWEsk, skN, prevkskey);
     }
+#endif
 
     auto& RGSWParams   = params->GetRingGSWParams();
     auto polyParams    = RGSWParams->GetPolyParams();
