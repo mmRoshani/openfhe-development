@@ -51,7 +51,9 @@ RingGSWACCKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAcc(const std::shared_p
     // only w automorphism keys required
     // allocates (n - w) more memory for pointer (not critical for performance)
     RingGSWACCKey ek = std::make_shared<RingGSWACCKeyImpl>(1, 2, n);
-
+    std::cout << "here in MultiPartyKeyGenAcc" << std::endl;
+    std::cout << "rgswenc0 size in MultiPartyKeyGenAcc " << rgswenc0.size() << std::endl;
+    std::cout << "n in MultiPartyKeyGenAcc " << n << std::endl;
 #pragma omp parallel for
     for (size_t i = 0; i < n; ++i) {
         int32_t s = (int32_t)sv[i].ConvertToInt();
@@ -61,9 +63,11 @@ RingGSWACCKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAcc(const std::shared_p
         // compute plaintext-ciphertext multiplication here
         // (*ek)[0][0][i] = KeyGenLMKCDEY(params, skNTT, s);
         //***********************
-        (*ek)[0][0][i] = RGSWBTEvalMult(params, (*prevbtkey)[0][0][i], skNTT, LWEsk);
+        // *((*ek)[0][0][i]) = *(RGSWBTEvalMult(params, (*prevbtkey)[0][0][i], skNTT, s));
+        (*ek)[0][0][i] = rgswenc0[i];
+        // to do sara later *((*ek)[0][0][i]) += *(rgswenc0[i]);
     }
-
+    std::cout << "here after loop mult in MultiPartyKeyGenAcc" << std::endl;
     NativeInteger gen = NativeInteger(5);
 
     auto mkauto = MultiPartyKeyGenAuto(params, skNTT, 2 * N - gen.ConvertToInt(), acrsauto[0]);
@@ -83,15 +87,30 @@ RingGSWACCKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAcc(const std::shared_p
 
 RingGSWEvalKey RingGSWAccumulatorLMKCDEY::RGSWBTEvalMult(const std::shared_ptr<RingGSWCryptoParams> params,
                                                          RingGSWEvalKey prevbtkey, const NativePoly& skNTT,
-                                                         ConstLWEPrivateKey LWEsk) const {
+                                                         int32_t si) const {
+    std::cout << "here in RGSWBTEvalMult" << std::endl;
+    uint32_t N              = params->GetN();
     uint32_t digitsG        = params->GetDigitsG();
     uint32_t digitsG2       = digitsG << 1;
     RingGSWEvalKey newbtkey = std::make_shared<RingGSWEvalKeyImpl>(digitsG2, 2);
 
+    // initiate with si and skNTT
+    std::cout << "N " << N << std::endl;
     // perform the multiplication
     for (uint32_t i = 0; i < digitsG2; i++) {
         for (uint32_t j = 0; j < 2; j++) {
-            (*newbtkey)[i][j] += (*prevbtkey)[i][j];
+            for (uint32_t k = 0; k < N; k++) {
+                std::cout << "k + si " << k + si << std::endl;
+                if (k + si >= N) {
+                    auto res = N - (k + si);
+                    std::cout << "res " << res << std::endl;
+
+                    (*newbtkey)[i][j][k] = -(*prevbtkey)[i][j][res];
+                }
+                else {
+                    (*newbtkey)[i][j][k] = (*prevbtkey)[i][j][k + si];
+                }
+            }
         }
     }
     return newbtkey;

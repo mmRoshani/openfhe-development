@@ -32,6 +32,7 @@
 #ifndef _RGSW_ACC_LMKCDEY_H_
 #define _RGSW_ACC_LMKCDEY_H_
 
+#include "rgsw-evalkey.h"
 #include "rgsw-acc.h"
 
 #include <vector>
@@ -79,7 +80,7 @@ private:
     const uint32_t m_window = 10;
 
     RingGSWEvalKey RGSWBTEvalMult(const std::shared_ptr<RingGSWCryptoParams> params, RingGSWEvalKey prevbtkey,
-                                  const NativePoly& skNTT, ConstLWEPrivateKey LWEsk) const;
+                                  const NativePoly& skNTT, int32_t si) const;
 
     RingGSWEvalKey KeyGenLMKCDEY(const std::shared_ptr<RingGSWCryptoParams> params, const NativePoly& skNTT,
                                  const LWEPlaintext& m) const;

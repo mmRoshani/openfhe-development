@@ -363,14 +363,15 @@ void BinFHEContext::MultipartyBTKeyGen(ConstLWEPrivateKey sk, RingGSWACCKey prev
                                        std::vector<RingGSWEvalKey> rgswenc0, LWESwitchingKey prevkskey) {
     auto& RGSWParams = m_params->GetRingGSWParams();
     auto temp        = RGSWParams->GetBaseG();
-    if (m_BTKey_map.size() != 0) {
-        m_BTKey = m_BTKey_map[temp];
-    }
-    else {
-        m_BTKey = m_binfhescheme->MultipartyBTKeyGen(m_params, sk, prevbtkey, zkey, leadFlag, acrsauto, rgswenc0,
-                                                     prevkskey, m_binfhescheme->get_num_of_parties());
-        m_BTKey_map[temp] = m_BTKey;
-    }
+
+    // if (m_BTKey_map.size() != 0) {
+    //    m_BTKey = m_BTKey_map[temp];
+    // }
+    // else {
+    m_BTKey = m_binfhescheme->MultipartyBTKeyGen(m_params, sk, prevbtkey, zkey, leadFlag, acrsauto, rgswenc0, prevkskey,
+                                                 m_binfhescheme->get_num_of_parties());
+    m_BTKey_map[temp] = m_BTKey;
+    // }
     return;
 }
 void MultipartyAutoKeygen() {

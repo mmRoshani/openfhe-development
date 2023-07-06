@@ -96,6 +96,7 @@ RingGSWBTKey BinFHEScheme::MultipartyBTKeyGen(const std::shared_ptr<BinFHECrypto
                                               bool leadFlag, std::vector<std::vector<NativePoly>> acrsauto,
                                               std::vector<RingGSWEvalKey> rgswenc0, LWESwitchingKey prevkskey,
                                               uint32_t num_of_parties) const {
+    std::cout << "here in mp btkeygen" << std::endl;
     const auto& LWEParams = params->GetLWEParams();
 
     const LWEPrivateKey skN = std::make_shared<LWEPrivateKeyImpl>(LWEPrivateKeyImpl(zkey.GetValues()));
@@ -124,7 +125,8 @@ RingGSWBTKey BinFHEScheme::MultipartyBTKeyGen(const std::shared_ptr<BinFHECrypto
 // RingGSWCiphertext
 
 RingGSWEvalKey BinFHEScheme::RGSWEvalAdd(RingGSWEvalKey a, RingGSWEvalKey b) {
-    // todo sara (*a) += (*b);
+    // todo sara
+    (*a) += (*b);
     return a;
 }
 

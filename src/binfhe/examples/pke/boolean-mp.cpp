@@ -47,7 +47,7 @@ int main() {
     // and HE standard. Other common options are TOY, MEDIUM, STD192, and STD256.
     // MEDIUM corresponds to the level of more than 100 bits for both quantum and
     // classical computer attacks.
-    cc.GenerateBinFHEContext(STD128, LMKCDEY, num_of_parties);  // number of parties is 5
+    cc.GenerateBinFHEContext(TOY, LMKCDEY, num_of_parties);  // number of parties is 5
 
     // Generate the secret keys s1, z1
     auto sk1 = cc.KeyGen();
@@ -124,7 +124,8 @@ int main() {
     std::cout << "Generating the bootstrapping keys..." << std::endl;
 
     // generate acrs for rgsw encryptions of 0 for re-randomization
-    std::vector<std::vector<std::vector<NativePoly>>> acrs0;
+    std::vector<std::vector<std::vector<NativePoly>>> acrs0(
+        num_of_parties, std::vector<std::vector<NativePoly>>(num_of_parties, std::vector<NativePoly>(n)));
     for (uint32_t i = 0; i < num_of_parties; i++) {      // number of iterations in sequence
         for (uint32_t j = 0; j < num_of_parties; j++) {  // for gen of encryption of 0 at one iteration
             for (uint32_t k = 0; k < n; k++) {           // dimension of secret
@@ -133,6 +134,7 @@ int main() {
         }
     }
 
+    std::cout << "after acrs0" << std::endl;
     // this vector is only to simulate the exchange of rgswencrypt with zi in the loop as every node
     // exchanges the rgswencrypt(0) with respect to its key. In a real implementation, this vector zvec does not exist
     std::vector<NativePoly> zvec;
@@ -143,9 +145,9 @@ int main() {
     zvec.push_back(z5);
 
     // generate encryptions of 0 for multiparty btkeygen
-    std::vector<std::vector<RingGSWEvalKey>> rgswenc0;
-    for (uint32_t i = 0; i < n; i++) {                   // for gen of encryption of 0 at one iteration
-        for (uint32_t j = 0; j < num_of_parties; j++) {  // dimension of secret
+    std::vector<std::vector<RingGSWEvalKey>> rgswenc0(num_of_parties, std::vector<RingGSWEvalKey>(n));
+    for (uint32_t i = 0; i < num_of_parties; i++) {  // for gen of encryption of 0 at one iteration
+        for (uint32_t j = 0; j < n; j++) {           // dimension of secret
             RingGSWEvalKey rgsw0_1 = cc.RGSWEncrypt(acrs0[0][1][i], zvec[0], 0, true);
             RingGSWEvalKey rgswadd = rgsw0_1;
             for (uint32_t k = 1; k < num_of_parties; k++) {
@@ -156,15 +158,19 @@ int main() {
         }
     }
 
+    std::cout << "after rgswenc0" << std::endl;
     // generate acrs for rgsw encryptions of 0 for automorphism keygen
     uint32_t digitsG  = cc.GetParams()->GetRingGSWParams()->GetDigitsG();
     uint32_t m_window = 10;  // need to be sure this is the same value in rgsw-acc-lmkcdey.h
-    std::vector<std::vector<NativePoly>> acrsauto;
+    std::cout << "digitsg2 " << digitsG << std::endl;
+    std::vector<std::vector<NativePoly>> acrsauto(digitsG, std::vector<NativePoly>(m_window + 1));
     for (uint32_t i = 0; i < digitsG; i++) {
         for (uint32_t j = 0; j < m_window + 1; j++) {
             acrsauto[i][j] = cc.Generateacrs();
         }
     }
+
+    std::cout << "before mpbtkeygen" << std::endl;
     // Generate the bootstrapping keys (refresh, switching and public keys)
     cc.MultipartyBTKeyGen(sk1, rgswe1, z1, true, acrsauto, rgswenc0[0]);
 
@@ -205,6 +211,5 @@ int main() {
     std::cout << "Result of encrypted ciphertext of 1 = " << result << std::endl;
 
     std::cout << "Result of encrypted computation of (1 AND 1) OR (1 AND (NOT 1)) = " << result << std::endl;
-
     return 0;
 }

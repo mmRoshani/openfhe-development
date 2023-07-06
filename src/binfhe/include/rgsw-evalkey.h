@@ -93,18 +93,25 @@ public:
         return *this;
     }
 
-    RingGSWEvalKeyImpl& operator+=(RingGSWEvalKeyImpl b) {
-        for (size_t i = 0; i < m_elements.size(); ++i)
+    RingGSWEvalKeyImpl& operator+=(RingGSWEvalKeyImpl const& b) {
+#if 0
+        std::cout << "ek size " << this->m_elements.size() << std::endl;
+        std::cout << "ek 2 dim size " << this->m_elements[0].size() << std::endl;
+
+        std::cout << "rgswenc0 size " << b.m_elements.size() << std::endl;
+        std::cout << "rgswenc0 2 dim size " << b.m_elements[0].size() << std::endl;
+#endif
+        for (size_t i = 0; i < this->m_elements.size(); ++i)
             // column size is assume to be the same
-            for (size_t j = 0; j < m_elements[0].size(); ++j)
+            for (size_t j = 0; j < this->m_elements[0].size(); ++j)
                 this->m_elements[i][j] = this->m_elements[i][j] + b.m_elements[i][j];
         return *this;
     }
 
     RingGSWEvalKeyImpl& operator+(RingGSWEvalKeyImpl b) {
-        for (size_t i = 0; i < m_elements.size(); ++i)
+        for (size_t i = 0; i < this->m_elements.size(); ++i)
             // column size is assume to be the same
-            for (size_t j = 0; j < m_elements[0].size(); ++j)
+            for (size_t j = 0; j < this->m_elements[0].size(); ++j)
                 this->m_elements[i][j] = this->m_elements[i][j] + b.m_elements[i][j];
         return *this;
     }
