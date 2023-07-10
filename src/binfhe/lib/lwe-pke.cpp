@@ -160,8 +160,9 @@ LWEPublicKey LWEEncryptionScheme::MultipartyPubKeyGen(const LWEPrivateKey sk, co
         }
     }
 
-    // joint public key As1 + e1 + As2 + e2
+    // joint public key Asi + ei + prevkey
     v.ModAddEq(pv);
+
     // public key A, v
     LWEPublicKeyImpl pki(A, v);
     auto pk = std::make_shared<LWEPublicKeyImpl>(pki);
@@ -537,15 +538,6 @@ LWESwitchingKey LWEEncryptionScheme::MultiPartyKeySwitchGen(const std::shared_pt
 
     NativeVector svN = skN->GetElement();
     svN.SwitchModulus(qKS);
-    //    NativeVector oldSK(oldSKlargeQ.GetLength(), qKS);
-    //    for (size_t i = 0; i < oldSK.GetLength(); i++) {
-    //        if ((oldSKlargeQ[i] == 0) || (oldSKlargeQ[i] == 1)) {
-    //            oldSK[i] = oldSKlargeQ[i];
-    //        }
-    //        else {
-    //            oldSK[i] = qKS - 1;
-    //        }
-    //    }
 
     DiscreteUniformGeneratorImpl<NativeVector> dug;
     dug.SetModulus(qKS);
@@ -568,16 +560,17 @@ LWESwitchingKey LWEEncryptionScheme::MultiPartyKeySwitchGen(const std::shared_pt
                     (params->GetDggKS().GenerateInteger(qKS)).ModAdd(svN[i].ModMul(j * digitsKS[k], qKS), qKS);
 
 #if NATIVEINT == 32
-                for (size_t i = 0; i < n; ++i) {
-                    b.ModAddFastEq(a[i].ModMulFast(sv[i], qKS, mu), qKS);
+                for (size_t ai = 0; ai < n; ++ai) {
+                    b.ModAddFastEq(aprevkskey[i][j][k][ai].ModMulFast(sv[i], qKS, mu), qKS);
                 }
+                b.ModAddEq(prevkskey->GetElementsB()[i][j][k], qKS);
 #else
                 for (size_t ai = 0; ai < n; ++ai) {
                     b += aprevkskey[i][j][k][ai].ModMulFast(sv[i], qKS, mu);
                 }
                 b.ModEq(qKS);
+                b.ModAddEq(prevkskey->GetElementsB()[i][j][k], qKS);
 #endif
-
                 // vector2A[k] = std::move(a);
                 vector2B[k] = std::move(b);
             }

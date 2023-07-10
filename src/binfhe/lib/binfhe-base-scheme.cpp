@@ -96,7 +96,6 @@ RingGSWBTKey BinFHEScheme::MultipartyBTKeyGen(const std::shared_ptr<BinFHECrypto
                                               bool leadFlag, std::vector<std::vector<NativePoly>> acrsauto,
                                               std::vector<RingGSWEvalKey> rgswenc0, LWESwitchingKey prevkskey,
                                               uint32_t num_of_parties) const {
-    std::cout << "here in mp btkeygen" << std::endl;
     const auto& LWEParams = params->GetLWEParams();
 
     const LWEPrivateKey skN = std::make_shared<LWEPrivateKeyImpl>(LWEPrivateKeyImpl(zkey.GetValues()));
@@ -111,6 +110,7 @@ RingGSWBTKey BinFHEScheme::MultipartyBTKeyGen(const std::shared_ptr<BinFHECrypto
     }
 #endif
 
+    ek.KSkey           = prevkskey;
     auto& RGSWParams   = params->GetRingGSWParams();
     auto polyParams    = RGSWParams->GetPolyParams();
     NativePoly skNPoly = NativePoly(polyParams);
@@ -222,7 +222,7 @@ LWECiphertext BinFHEScheme::EvalBinGate(const std::shared_ptr<BinFHECryptoParams
     if (ct1 == ct2) {
         OPENFHE_THROW(config_error, "Input ciphertexts should be independant");
     }
-
+#if 0
     // By default, we compute XOR/XNOR using a combination of AND, OR, and NOT gates
     if ((gate == XOR) || (gate == XNOR)) {
         auto ct1NOT = EvalNOT(params, ct1);
@@ -258,6 +258,7 @@ LWECiphertext BinFHEScheme::EvalBinGate(const std::shared_ptr<BinFHECryptoParams
         accVec[0].SetFormat(Format::COEFFICIENT);
         accVec[1].SetFormat(Format::COEFFICIENT);
 
+
         // we add Q/8 to "b" to to map back to Q/4 (i.e., mod 2) arithmetic.
         auto& LWEParams = params->GetLWEParams();
         NativeInteger Q = LWEParams->GetQ();
@@ -272,6 +273,15 @@ LWECiphertext BinFHEScheme::EvalBinGate(const std::shared_ptr<BinFHECryptoParams
         // Modulus switching
         return LWEscheme->ModSwitch(ct1->GetModulus(), ctKS);
     }
+#endif
+    auto& LWEParams = params->GetLWEParams();
+
+    // Modulus switching to a middle step Q'
+    auto ctMS = LWEscheme->ModSwitch(LWEParams->GetqKS(), ct1);
+    // Key switching
+    auto ctKS = LWEscheme->KeySwitch(LWEParams, EK.KSkey, ctMS);
+    // Modulus switching
+    return LWEscheme->ModSwitch(ct1->GetModulus(), ctKS);
 }
 
 // Full evaluation as described in https://eprint.iacr.org/2020/086
