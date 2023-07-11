@@ -136,13 +136,10 @@ LWEKeyPair LWEEncryptionScheme::MultipartyKeyGen(const std::vector<LWEPrivateKey
 LWEPublicKey LWEEncryptionScheme::MultipartyPubKeyGen(const LWEPrivateKey sk, const LWEPublicKey publicKey) {
     LWEKeyPair keyPair;
 
-    auto A       = publicKey->GetA();
-    auto pv      = publicKey->Getv();
-    auto dim     = publicKey->GetLength();
-    auto modulus = publicKey->GetModulus();
-
-    // When PRE is not used, a joint key is computed
-    // DCRTPoly b = fresh ? (ns * e - a * s) : (ns * e - a * s + pk[0]);
+    auto A          = publicKey->GetA();
+    NativeVector pv = publicKey->Getv();
+    auto dim        = publicKey->GetLength();
+    auto modulus    = publicKey->GetModulus();
 
     // generate error vector e
     DiscreteGaussianGeneratorImpl<NativeVector> dgg;
@@ -161,15 +158,15 @@ LWEPublicKey LWEEncryptionScheme::MultipartyPubKeyGen(const LWEPrivateKey sk, co
     }
 
     // joint public key Asi + ei + prevkey
-    v.ModAddEq(pv);
-
+    for (size_t j = 0; j < dim; ++j) {
+        v[j].ModAddEq(pv[j], modulus);
+    }
     // public key A, v
     LWEPublicKeyImpl pki(A, v);
-    auto pk = std::make_shared<LWEPublicKeyImpl>(pki);
 
     // auto lweKeyPair = LWEKeyPairImpl(pk, sk);
 
-    return pk;
+    return std::make_shared<LWEPublicKeyImpl>(pki);
 }
 
 // classical LWE encryption
@@ -539,37 +536,38 @@ LWESwitchingKey LWEEncryptionScheme::MultiPartyKeySwitchGen(const std::shared_pt
     NativeVector svN = skN->GetElement();
     svN.SwitchModulus(qKS);
 
-    DiscreteUniformGeneratorImpl<NativeVector> dug;
-    dug.SetModulus(qKS);
+    // DiscreteUniformGeneratorImpl<NativeVector> dug;
+    // dug.SetModulus(qKS);
 
     NativeInteger mu = qKS.ComputeMu();
 
     // std::vector<std::vector<std::vector<NativeVector>>> resultVecA(N);
     std::vector<std::vector<std::vector<NativeInteger>>> resultVecB(N);
     auto aprevkskey = prevkskey->GetElementsA();
+    auto bprevkskey = prevkskey->GetElementsB();
 
 #pragma omp parallel for
     for (size_t i = 0; i < N; ++i) {
-        std::vector<std::vector<NativeVector>> vector1A(baseKS);
+        // std::vector<std::vector<NativeVector>> vector1A(baseKS);
         std::vector<std::vector<NativeInteger>> vector1B(baseKS);
         for (size_t j = 0; j < baseKS; ++j) {
-            std::vector<NativeVector> vector2A(digitCount);
+            // std::vector<NativeVector> vector2A(digitCount);
             std::vector<NativeInteger> vector2B(digitCount);
             for (size_t k = 0; k < digitCount; ++k) {
                 NativeInteger b =
-                    (params->GetDggKS().GenerateInteger(qKS)).ModAdd(svN[i].ModMul(j * digitsKS[k], qKS), qKS);
+                    (params->GetDggKS().GenerateInteger(qKS)).ModAddEq(svN[i].ModMulEq(j * digitsKS[k], qKS), qKS);
 
 #if NATIVEINT == 32
                 for (size_t ai = 0; ai < n; ++ai) {
                     b.ModAddFastEq(aprevkskey[i][j][k][ai].ModMulFast(sv[i], qKS, mu), qKS);
                 }
-                b.ModAddEq(prevkskey->GetElementsB()[i][j][k], qKS);
+                b.ModAddEq(bprevkskey[i][j][k], qKS);
 #else
                 for (size_t ai = 0; ai < n; ++ai) {
-                    b += aprevkskey[i][j][k][ai].ModMulFast(sv[i], qKS, mu);
+                    b += aprevkskey[i][j][k][ai].ModMulFastEq(sv[i], qKS, mu);
                 }
                 b.ModEq(qKS);
-                b.ModAddEq(prevkskey->GetElementsB()[i][j][k], qKS);
+                b.ModAddEq(bprevkskey[i][j][k], qKS);
 #endif
                 // vector2A[k] = std::move(a);
                 vector2B[k] = std::move(b);

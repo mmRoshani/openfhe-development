@@ -67,22 +67,21 @@ RingGSWBTKey BinFHEScheme::KeyGen(const std::shared_ptr<BinFHECryptoParams> para
     return ek;
 }
 
-RingGSWBTKey BinFHEScheme::MultiPartyKeyGen(const std::shared_ptr<BinFHECryptoParams> params, ConstLWEPrivateKey LWEsk,
+RingGSWBTKey BinFHEScheme::MultiPartyKeyGen(const std::shared_ptr<LWECryptoParams> params, ConstLWEPrivateKey LWEsk,
                                             const NativePoly zN, const LWEPublicKey publicKey,
                                             LWESwitchingKey prevkskey, bool leadFlag) const {
     RingGSWBTKey ek;
     LWEPublicKey pkN;
-    const auto& LWEParams = params->GetLWEParams();
 
     const LWEPrivateKey LWEskN = std::make_shared<LWEPrivateKeyImpl>(LWEPrivateKeyImpl(zN.GetValues()));
 
     if (leadFlag) {
-        pkN      = LWEscheme->PubKeyGen(LWEParams, LWEskN);
-        ek.KSkey = LWEscheme->KeySwitchGen(LWEParams, LWEsk, LWEskN);
+        pkN      = LWEscheme->PubKeyGen(params, LWEskN);
+        ek.KSkey = LWEscheme->KeySwitchGen(params, LWEsk, LWEskN);
     }
     else {
         pkN      = LWEscheme->MultipartyPubKeyGen(LWEskN, publicKey);
-        ek.KSkey = LWEscheme->MultiPartyKeySwitchGen(LWEParams, LWEsk, LWEskN, prevkskey);
+        ek.KSkey = LWEscheme->MultiPartyKeySwitchGen(params, LWEsk, LWEskN, prevkskey);
     }
 
     ek.Pkey = pkN;
@@ -93,7 +92,7 @@ RingGSWBTKey BinFHEScheme::MultiPartyKeyGen(const std::shared_ptr<BinFHECryptoPa
 // wrapper for KeyGen methods
 RingGSWBTKey BinFHEScheme::MultipartyBTKeyGen(const std::shared_ptr<BinFHECryptoParams> params,
                                               ConstLWEPrivateKey LWEsk, RingGSWACCKey prevbtkey, NativePoly zkey,
-                                              bool leadFlag, std::vector<std::vector<NativePoly>> acrsauto,
+                                              std::vector<std::vector<NativePoly>> acrsauto,
                                               std::vector<RingGSWEvalKey> rgswenc0, LWESwitchingKey prevkskey,
                                               uint32_t num_of_parties) const {
     const auto& LWEParams = params->GetLWEParams();
@@ -132,22 +131,16 @@ RingGSWEvalKey BinFHEScheme::RGSWEvalAdd(RingGSWEvalKey a, RingGSWEvalKey b) {
 
 // wrapper for KeyGen methods
 NativePoly BinFHEScheme::RGSWKeyGen(const std::shared_ptr<BinFHECryptoParams> params) const {
-    const auto& LWEParams = params->GetLWEParams();
+    auto size         = params->GetLWEParams()->GetN();
+    auto modulus      = params->GetLWEParams()->GetQ();
+    LWEPrivateKey skN = LWEscheme->KeyGen(size, modulus);
 
-    LWEPrivateKey skN;
-    // RingGSWBTKey ek;
-
-    ConstLWEKeyPair kpN = LWEscheme->KeyGenPair(LWEParams);
-    skN                 = kpN->secretKey;
-    // ek.Pkey             = kpN->publicKey;
-
-    // ek.KSkey = LWEscheme->KeySwitchGen(LWEParams, LWEsk, skN); should add another function for multiparty generation
-
+    // convert generated secret key to native poly
     auto& RGSWParams   = params->GetRingGSWParams();
     auto polyParams    = RGSWParams->GetPolyParams();
     NativePoly skNPoly = NativePoly(polyParams);
     skNPoly.SetValues(skN->GetElement(), Format::COEFFICIENT);
-    skNPoly.SetFormat(Format::EVALUATION);
+    // skNPoly.SetFormat(Format::EVALUATION);
 
     return skNPoly;
 }
@@ -197,7 +190,7 @@ RingGSWEvalKey BinFHEScheme::RGSWEncrypt(const std::shared_ptr<RingGSWCryptoPara
             auto mG = mmn.ModMulEq(Gpow[i], Q);
             // Add G Multiple
             (*result)[2 * i][0][0].ModAddEq(mG, Q);  // (Gpow[i], Q);
-            // [a,as+e] + X^m*G (X^m is represented as a coefficient vector where )
+            // [a,as+e] + m*G
             (*result)[2 * i + 1][1][0].ModAddEq(mG, Q);  // Gpow[i], Q);
         }
     }
@@ -222,7 +215,7 @@ LWECiphertext BinFHEScheme::EvalBinGate(const std::shared_ptr<BinFHECryptoParams
     if (ct1 == ct2) {
         OPENFHE_THROW(config_error, "Input ciphertexts should be independant");
     }
-#if 0
+
     // By default, we compute XOR/XNOR using a combination of AND, OR, and NOT gates
     if ((gate == XOR) || (gate == XNOR)) {
         auto ct1NOT = EvalNOT(params, ct1);
@@ -258,7 +251,6 @@ LWECiphertext BinFHEScheme::EvalBinGate(const std::shared_ptr<BinFHECryptoParams
         accVec[0].SetFormat(Format::COEFFICIENT);
         accVec[1].SetFormat(Format::COEFFICIENT);
 
-
         // we add Q/8 to "b" to to map back to Q/4 (i.e., mod 2) arithmetic.
         auto& LWEParams = params->GetLWEParams();
         NativeInteger Q = LWEParams->GetQ();
@@ -273,7 +265,8 @@ LWECiphertext BinFHEScheme::EvalBinGate(const std::shared_ptr<BinFHECryptoParams
         // Modulus switching
         return LWEscheme->ModSwitch(ct1->GetModulus(), ctKS);
     }
-#endif
+
+#if 0
     auto& LWEParams = params->GetLWEParams();
 
     // Modulus switching to a middle step Q'
@@ -282,6 +275,7 @@ LWECiphertext BinFHEScheme::EvalBinGate(const std::shared_ptr<BinFHECryptoParams
     auto ctKS = LWEscheme->KeySwitch(LWEParams, EK.KSkey, ctMS);
     // Modulus switching
     return LWEscheme->ModSwitch(ct1->GetModulus(), ctKS);
+#endif
 }
 
 // Full evaluation as described in https://eprint.iacr.org/2020/086

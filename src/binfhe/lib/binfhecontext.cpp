@@ -200,17 +200,18 @@ LWEKeyPair BinFHEContext::MultipartyKeyGen(const std::vector<LWEPrivateKey>& pri
 
 void BinFHEContext::MultiPartyKeyGen(ConstLWEPrivateKey LWEsk, const NativePoly zN, const LWEPublicKey publicKey,
                                      LWESwitchingKey prevkskey, bool leadFlag) {
+    auto& LWEParams  = m_params->GetLWEParams();
     auto& RGSWParams = m_params->GetRingGSWParams();
 
     auto temp = RGSWParams->GetBaseG();
 
-    if (m_BTKey_map.size() != 0) {
-        m_BTKey = m_BTKey_map[temp];
-    }
-    else {
-        m_BTKey           = m_binfhescheme->MultiPartyKeyGen(m_params, LWEsk, zN, publicKey, prevkskey, leadFlag);
-        m_BTKey_map[temp] = m_BTKey;
-    }
+    // if (m_BTKey_map.size() != 0) {
+    //    m_BTKey = m_BTKey_map[temp];
+    // }
+    // else {
+    m_BTKey           = m_binfhescheme->MultiPartyKeyGen(LWEParams, LWEsk, zN, publicKey, prevkskey, leadFlag);
+    m_BTKey_map[temp] = m_BTKey;
+    // }
 }
 LWEPublicKey BinFHEContext::MultipartyPubKeyGen(const LWEPrivateKey skN, const LWEPublicKey publicKey) {
     // auto& LWEParams = m_params->GetLWEParams();
@@ -358,7 +359,7 @@ void BinFHEContext::BTKeyGen(ConstLWEPrivateKey sk, KEYGEN_MODE keygenMode) {
     }
 }
 
-void BinFHEContext::MultipartyBTKeyGen(ConstLWEPrivateKey sk, RingGSWACCKey prevbtkey, NativePoly zkey, bool leadFlag,
+void BinFHEContext::MultipartyBTKeyGen(ConstLWEPrivateKey sk, RingGSWACCKey prevbtkey, NativePoly zkey,
                                        std::vector<std::vector<NativePoly>> acrsauto,
                                        std::vector<RingGSWEvalKey> rgswenc0, LWESwitchingKey prevkskey) {
     auto& RGSWParams = m_params->GetRingGSWParams();
@@ -368,8 +369,8 @@ void BinFHEContext::MultipartyBTKeyGen(ConstLWEPrivateKey sk, RingGSWACCKey prev
     //    m_BTKey = m_BTKey_map[temp];
     // }
     // else {
-    m_BTKey = m_binfhescheme->MultipartyBTKeyGen(m_params, sk, prevbtkey, zkey, leadFlag, acrsauto, rgswenc0, prevkskey,
-                                                 m_binfhescheme->get_num_of_parties());
+    m_BTKey           = m_binfhescheme->MultipartyBTKeyGen(m_params, sk, prevbtkey, zkey, acrsauto, rgswenc0, prevkskey,
+                                                           m_binfhescheme->get_num_of_parties());
     m_BTKey_map[temp] = m_BTKey;
     // }
     return;
