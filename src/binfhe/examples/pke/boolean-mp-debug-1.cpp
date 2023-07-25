@@ -41,7 +41,7 @@ int main() {
     // Sample Program: Step 1: Set CryptoContext
 
     auto cc                 = BinFHEContext();
-    uint32_t num_of_parties = 5;
+    uint32_t num_of_parties = 2;
 
     // STD128 is the security level of 128 bits of security based on LWE Estimator
     // and HE standard. Other common options are TOY, MEDIUM, STD192, and STD256.
@@ -57,34 +57,14 @@ int main() {
     // generate public key, key switching key for the secrets
     cc.MultiPartyKeyGen(sk1, z1, cc.GetPublicKey(), cc.GetSwitchKey(), true);
     auto pk1  = cc.GetPublicKey();
+    auto ksk1 = cc.GetSwitchKey();
     auto ct11 = cc.Encrypt(pk1, 1);
 
     auto sk2 = cc.KeyGen();
     auto z2  = cc.RGSWKeygen();
 
     // generate public key, key switching key for the secrets
-    cc.MultiPartyKeyGen(sk2, z2, cc.GetPublicKey(), cc.GetSwitchKey(), false);
-    auto pk2  = cc.GetPublicKey();
-    auto ct22 = cc.Encrypt(pk2, 0);
-
-    auto sk3 = cc.KeyGen();
-    auto z3  = cc.RGSWKeygen();
-
-    // generate public key, key switching key for the secrets
-    cc.MultiPartyKeyGen(sk3, z3, cc.GetPublicKey(), cc.GetSwitchKey(), false);
-    auto pk3 = cc.GetPublicKey();
-
-    auto sk4 = cc.KeyGen();
-    auto z4  = cc.RGSWKeygen();
-
-    // generate public key, key switching key for the secrets
-    cc.MultiPartyKeyGen(sk4, z4, cc.GetPublicKey(), cc.GetSwitchKey(), false);
-
-    auto sk5 = cc.KeyGen();
-    auto z5  = cc.RGSWKeygen();
-
-    // generate public key, key switching key for the secrets
-    cc.MultiPartyKeyGen(sk5, z5, cc.GetPublicKey(), cc.GetSwitchKey(), false);
+    cc.MultiPartyKeyGen(sk2, z2, pk1, ksk1, false);
 
     // common lwe public key
     auto pk    = cc.GetPublicKey();
@@ -92,14 +72,78 @@ int main() {
 
     z1.SetFormat(EVALUATION);
     z2.SetFormat(EVALUATION);
-    z3.SetFormat(EVALUATION);
-    z4.SetFormat(EVALUATION);
-    z5.SetFormat(EVALUATION);
 
-    auto ct1 = cc.Encrypt(pk, 1);
-    auto ct2 = cc.Encrypt(pk, 0);
+    // LARGE_DIM specifies the dimension of the output ciphertext
+    auto ctN  = cc.Encrypt(pk, 1, LARGE_DIM);
+    auto ct0N = cc.Encrypt(pk, 0, LARGE_DIM);
+    auto ct1  = cc.Encrypt(pk, 1);
+    auto ct2  = cc.Encrypt(pk, 0);
 
-    std::cout << "Generating the bootstrapping keys..." << std::endl;
+    //**********************************
+    z1.SetFormat(COEFFICIENT);
+    z2.SetFormat(COEFFICIENT);
+
+    LWEPlaintext result1;
+    LWEPrivateKey sk1N = std::make_shared<LWEPrivateKeyImpl>(LWEPrivateKeyImpl(z1.GetValues()));
+    LWEPrivateKey sk2N = std::make_shared<LWEPrivateKeyImpl>(LWEPrivateKeyImpl(z2.GetValues()));
+
+    auto skv          = sk1N->GetElement() + sk2N->GetElement();
+    LWEPrivateKey ska = std::make_shared<LWEPrivateKeyImpl>(skv);
+    // ska->SetElement(skv);
+    cc.Decrypt(ska, ctN, &result1);
+
+    std::cout << "Result of encrypted computation of (1) ska = " << result1 << std::endl;
+
+    LWEPlaintext result2;
+
+    std::vector<LWECiphertext> pct0Nt;
+    auto pct10 = cc.MultipartyDecryptLead(sk1N, ct0N);
+    auto pct20 = cc.MultipartyDecryptMain(sk2N, ct0N);
+
+    pct0Nt.push_back(pct10);
+    pct0Nt.push_back(pct10);
+
+    cc.MultipartyDecryptFusion(pct0Nt, &result2);
+
+    std::cout << "Result of encrypted computation of (0) distdec N = " << result2 << std::endl;
+
+    LWEPlaintext result3;
+    cc.Decrypt(sk1, ct11, &result3);
+
+    std::cout << "Result of encrypted computation of (1) sk1 = " << result3 << std::endl;
+
+    LWEPlaintext result4;
+
+    // decryption check before computation
+    std::cout << "ciphertext dimension " << ct1->GetLength() << std::endl;
+    std::cout << "ciphertext modulus " << ct1->GetModulus() << std::endl;
+    std::vector<LWECiphertext> pct1t;
+    auto pct11 = cc.MultipartyDecryptLead(sk1, ct1);
+    auto pct21 = cc.MultipartyDecryptMain(sk2, ct1);
+
+    pct1t.push_back(pct11);
+    pct1t.push_back(pct21);
+
+    cc.MultipartyDecryptFusion(pct1t, &result4);
+
+    std::cout << "Result of encrypted computation of (1) = " << result4 << std::endl;
+
+    LWEPlaintext result5;
+    std::vector<LWECiphertext> pct2t;
+    auto pct211 = cc.MultipartyDecryptLead(sk1, ct2);
+    auto pct221 = cc.MultipartyDecryptMain(sk2, ct2);
+
+    pct2t.push_back(pct211);
+    pct2t.push_back(pct221);
+
+    cc.MultipartyDecryptFusion(pct2t, &result5);
+
+    std::cout << "Result of encrypted computation of (0) dist sk1+sk2 = " << result5 << std::endl;
+
+    z1.SetFormat(EVALUATION);
+    z2.SetFormat(EVALUATION);
+    // *****************************
+
     // distributed generation of RGSW_{z_*}(1)
     // generate a_{crs}
 
@@ -107,14 +151,8 @@ int main() {
 
     auto rgsw1_1 = cc.RGSWEncrypt(acrs, z1, 1, true);
     auto rgsw1_2 = cc.RGSWEncrypt(acrs, z2, 1);
-    auto rgsw1_3 = cc.RGSWEncrypt(acrs, z3, 1);
-    auto rgsw1_4 = cc.RGSWEncrypt(acrs, z4, 1);
-    auto rgsw1_5 = cc.RGSWEncrypt(acrs, z5, 1);
 
-    auto rgsw12   = cc.RGSWEvalAdd(rgsw1_1, rgsw1_2);
-    auto rgsw123  = cc.RGSWEvalAdd(rgsw12, rgsw1_3);
-    auto rgsw1234 = cc.RGSWEvalAdd(rgsw123, rgsw1_4);
-    auto rgsw1    = cc.RGSWEvalAdd(rgsw1234, rgsw1_5);
+    auto rgsw1 = cc.RGSWEvalAdd(rgsw1_1, rgsw1_2);
 
     // create btkey with RSGW encryption of 1 for every element of the secret
     uint32_t n = sk1->GetElement().GetLength();
@@ -124,6 +162,9 @@ int main() {
         (*rgswe1)[0][0][i] = rgsw1;
     }
     // distributed generation of RGSW_{z_*}(0) will be done while computing the bootstrapping key
+    // Sample Program: Step 2: Key Generation
+
+    std::cout << "Generating the bootstrapping keys..." << std::endl;
 
     // generate acrs for rgsw encryptions of 0 for re-randomization
     std::vector<std::vector<std::vector<NativePoly>>> acrs0(
@@ -141,9 +182,6 @@ int main() {
     std::vector<NativePoly> zvec;
     zvec.push_back(z1);
     zvec.push_back(z2);
-    zvec.push_back(z3);
-    zvec.push_back(z4);
-    zvec.push_back(z5);
 
     // generate encryptions of 0 for multiparty btkeygen
     std::vector<std::vector<RingGSWEvalKey>> rgswenc0(num_of_parties, std::vector<RingGSWEvalKey>(n));
@@ -174,12 +212,6 @@ int main() {
 
     cc.MultipartyBTKeyGen(sk2, cc.GetRefreshKey(), z2, acrsauto, rgswenc0[1], kskey);
 
-    cc.MultipartyBTKeyGen(sk3, cc.GetRefreshKey(), z3, acrsauto, rgswenc0[2], kskey);
-
-    cc.MultipartyBTKeyGen(sk4, cc.GetRefreshKey(), z4, acrsauto, rgswenc0[3], kskey);
-
-    cc.MultipartyBTKeyGen(sk5, cc.GetRefreshKey(), z5, acrsauto, rgswenc0[4], kskey);
-
     // cc.insertRefreshKey(rgswp5);
 
     std::cout << "Completed the key generation." << std::endl;
@@ -195,15 +227,9 @@ int main() {
     std::vector<LWECiphertext> pct;
     auto pct1 = cc.MultipartyDecryptLead(sk1, ctAND1);
     auto pct2 = cc.MultipartyDecryptMain(sk2, ctAND1);
-    auto pct3 = cc.MultipartyDecryptMain(sk3, ctAND1);
-    auto pct4 = cc.MultipartyDecryptMain(sk4, ctAND1);
-    auto pct5 = cc.MultipartyDecryptMain(sk5, ctAND1);
 
     pct.push_back(pct1);
     pct.push_back(pct2);
-    pct.push_back(pct3);
-    pct.push_back(pct4);
-    pct.push_back(pct5);
 
     cc.MultipartyDecryptFusion(pct, &result);
 

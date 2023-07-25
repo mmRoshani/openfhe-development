@@ -61,7 +61,8 @@ RingGSWACCKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAcc(const std::shared_p
         // compute plaintext-ciphertext multiplication here
         // (*ek)[0][0][i] = KeyGenLMKCDEY(params, skNTT, s);
         //***********************
-        (*ek)[0][0][i] = RGSWBTEvalMult(params, (*prevbtkey)[0][0][i], skNTT, s);
+        int64_t sm     = (((s % mod) + mod) % mod) * (2 * N / mod);
+        (*ek)[0][0][i] = RGSWBTEvalMult(params, (*prevbtkey)[0][0][i], skNTT, sm);
         *((*ek)[0][0][i]) += *(rgswenc0[i]);
     }
     NativeInteger gen = NativeInteger(5);

@@ -446,7 +446,9 @@ LWESwitchingKey LWEEncryptionScheme::KeySwitchGen(const std::shared_ptr<LWECrypt
         digitsKS.push_back(value);
         value *= baseKS;
     }
-
+    std::cout << "baseKS single " << baseKS << std::endl;
+    std::cout << "N single " << N << std::endl;
+    std::cout << "digitCount single " << digitCount << std::endl;
     // newSK stores negative values using modulus q
     // we need to switch to modulus Q
     NativeVector sv = sk->GetElement();
@@ -491,7 +493,7 @@ LWESwitchingKey LWEEncryptionScheme::KeySwitchGen(const std::shared_ptr<LWECrypt
                 }
 #else
                 for (size_t i = 0; i < n; ++i) {
-                    b += a[i].ModMulFast(sv[i], qKS, mu);
+                    b.ModAddFastEq(a[i].ModMulFast(sv[i], qKS, mu), qKS);
                 }
                 b.ModEq(qKS);
 #endif
@@ -505,6 +507,18 @@ LWESwitchingKey LWEEncryptionScheme::KeySwitchGen(const std::shared_ptr<LWECrypt
         resultVecA[i] = std::move(vector1A);
         resultVecB[i] = std::move(vector1B);
     }
+
+#if 0
+    // print a values for debugging
+    std::cout << "printing b" << std::endl;
+    for (size_t i = 0; i < N; ++i) {
+        for (size_t j = 0; j < baseKS; ++j) {
+            for (size_t k = 0; k < digitCount; ++k) {
+                std::cout << resultVecB[i][j][k] << std::endl;
+            }
+        }
+    }
+#endif
 
     return std::make_shared<LWESwitchingKeyImpl>(LWESwitchingKeyImpl(resultVecA, resultVecB));
 }
@@ -527,7 +541,9 @@ LWESwitchingKey LWEEncryptionScheme::MultiPartyKeySwitchGen(const std::shared_pt
         digitsKS.push_back(value);
         value *= baseKS;
     }
-
+    std::cout << "baseKS multi " << baseKS << std::endl;
+    std::cout << "N multi " << N << std::endl;
+    std::cout << "digitCount multi " << digitCount << std::endl;
     // newSK stores negative values using modulus q
     // we need to switch to modulus Q
     NativeVector sv = sk->GetElement();
@@ -554,8 +570,9 @@ LWESwitchingKey LWEEncryptionScheme::MultiPartyKeySwitchGen(const std::shared_pt
             // std::vector<NativeVector> vector2A(digitCount);
             std::vector<NativeInteger> vector2B(digitCount);
             for (size_t k = 0; k < digitCount; ++k) {
-                NativeInteger b =
-                    (params->GetDggKS().GenerateInteger(qKS)).ModAddEq(svN[i].ModMulEq(j * digitsKS[k], qKS), qKS);
+                // NativeInteger b =
+                //    (params->GetDggKS().GenerateInteger(qKS)).ModAdd(svN[i].ModMul(j * digitsKS[k], qKS), qKS);
+                NativeInteger b = svN[i].ModMul(j * digitsKS[k], qKS);
 
 #if NATIVEINT == 32
                 for (size_t ai = 0; ai < n; ++ai) {
@@ -564,10 +581,11 @@ LWESwitchingKey LWEEncryptionScheme::MultiPartyKeySwitchGen(const std::shared_pt
                 b.ModAddEq(bprevkskey[i][j][k], qKS);
 #else
                 for (size_t ai = 0; ai < n; ++ai) {
-                    b += aprevkskey[i][j][k][ai].ModMulFastEq(sv[i], qKS, mu);
+                    b.ModAddFastEq(aprevkskey[i][j][k][ai].ModMulFast(sv[i], qKS, mu), qKS);
                 }
-                b.ModEq(qKS);
                 b.ModAddEq(bprevkskey[i][j][k], qKS);
+                // std::cout << "bprev[" << i << "][" << j << "][" << k << "] = " << bprevkskey[i][j][k] << std::endl;
+                // std::cout << "b = " << b << std::endl;
 #endif
                 // vector2A[k] = std::move(a);
                 vector2B[k] = std::move(b);
@@ -579,6 +597,24 @@ LWESwitchingKey LWEEncryptionScheme::MultiPartyKeySwitchGen(const std::shared_pt
         resultVecB[i] = std::move(vector1B);
     }
 
+#if 0
+    std::cout << "printing bprekskey" << std::endl;
+    for (size_t i = 0; i < N; ++i) {
+        for (size_t j = 0; j < baseKS; ++j) {
+            for (size_t k = 0; k < digitCount; ++k) {
+                std::cout << bprevkskey[i][j][k] << std::endl;
+            }
+        }
+    }
+    std::cout << "printing b_add" << std::endl;
+    for (size_t i = 0; i < N; ++i) {
+        for (size_t j = 0; j < baseKS; ++j) {
+            for (size_t k = 0; k < digitCount; ++k) {
+                std::cout << resultVecB[i][j][k] << std::endl;
+            }
+        }
+    }
+#endif
     return std::make_shared<LWESwitchingKeyImpl>(LWESwitchingKeyImpl(aprevkskey, resultVecB));
 }
 
