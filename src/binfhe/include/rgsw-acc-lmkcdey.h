@@ -79,13 +79,11 @@ public:
 private:
     const uint32_t m_window = 10;
 
-    RingGSWEvalKey RGSWBTEvalMult(const std::shared_ptr<RingGSWCryptoParams> params, RingGSWEvalKey prevbtkey,
-                                  const NativePoly& skNTT, int32_t si) const;
-
     RingGSWEvalKey KeyGenLMKCDEY(const std::shared_ptr<RingGSWCryptoParams> params, const NativePoly& skNTT,
                                  const LWEPlaintext& m) const;
 
-    RingGSWEvalKey MultiPartyKeyGenAuto(const std::shared_ptr<RingGSWCryptoParams> params, const NativePoly& skNTT,
+    RingGSWEvalKey MultiPartyKeyGenAuto(const std::shared_ptr<RingGSWCryptoParams> params,
+                                        const RingGSWEvalKey prevautokey, const NativePoly& skNTT,
                                         const LWEPlaintext& k, std::vector<NativePoly> acrsauto) const;
 
     RingGSWEvalKey KeyGenAuto(const std::shared_ptr<RingGSWCryptoParams> params, const NativePoly& skNTT,

@@ -103,8 +103,8 @@ public:
 #endif
         for (size_t i = 0; i < this->m_elements.size(); ++i)
             // column size is assume to be the same
-            for (size_t j = 0; j < this->m_elements[0].size(); ++j)
-                this->m_elements[i][j] = this->m_elements[i][j] + b.m_elements[i][j];
+            // for (size_t j = 0; j < this->m_elements[0].size(); ++j)
+            this->m_elements[i][1] = this->m_elements[i][1] + b.m_elements[i][1];
         return *this;
     }
 

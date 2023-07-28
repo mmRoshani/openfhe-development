@@ -99,7 +99,7 @@ RingGSWBTKey BinFHEScheme::MultipartyBTKeyGen(const std::shared_ptr<BinFHECrypto
                                               uint32_t num_of_parties) const {
     const auto& LWEParams = params->GetLWEParams();
 
-    const LWEPrivateKey skN = std::make_shared<LWEPrivateKeyImpl>(LWEPrivateKeyImpl(zkey.GetValues()));
+    // const LWEPrivateKey skN = std::make_shared<LWEPrivateKeyImpl>(LWEPrivateKeyImpl(zkey.GetValues()));
     RingGSWBTKey ek;
 
 #if 0
@@ -111,14 +111,14 @@ RingGSWBTKey BinFHEScheme::MultipartyBTKeyGen(const std::shared_ptr<BinFHECrypto
     }
 #endif
 
-    ek.KSkey           = prevkskey;
-    auto& RGSWParams   = params->GetRingGSWParams();
-    auto polyParams    = RGSWParams->GetPolyParams();
-    NativePoly skNPoly = NativePoly(polyParams);
-    skNPoly.SetValues(skN->GetElement(), Format::COEFFICIENT);
-    skNPoly.SetFormat(Format::EVALUATION);
+    ek.KSkey         = prevkskey;
+    auto& RGSWParams = params->GetRingGSWParams();
+    auto polyParams  = RGSWParams->GetPolyParams();
+    // NativePoly skNPoly = NativePoly(polyParams);
+    // skNPoly.SetValues(skN->GetElement(), Format::COEFFICIENT);
+    // skNPoly.SetFormat(Format::EVALUATION);
 
-    ek.BSkey = ACCscheme->MultiPartyKeyGenAcc(RGSWParams, skNPoly, LWEsk, prevbtkey, acrsauto, rgswenc0);
+    ek.BSkey = ACCscheme->MultiPartyKeyGenAcc(RGSWParams, zkey, LWEsk, prevbtkey, acrsauto, rgswenc0);
 
     return ek;
 }
@@ -171,7 +171,7 @@ RingGSWEvalKey BinFHEScheme::RGSWEncrypt(const std::shared_ptr<RingGSWCryptoPara
 
     // Reduce mod q (dealing with negative number as well)
     // int64_t mm       = (((m % q) + q) % q) * (2 * N / q);
-    int64_t mm = m % q;
+    int64_t mm = ((m % q) + q) % q;
 
     // tempA is introduced to minimize the number of NTTs
     std::vector<NativePoly> tempA(digitsG2);
@@ -181,7 +181,8 @@ RingGSWEvalKey BinFHEScheme::RGSWEncrypt(const std::shared_ptr<RingGSWCryptoPara
         (*result)[i][0] = acrs;
         tempA[i]        = (*result)[i][0];
         // populate result[i][1] with error e
-        (*result)[i][1] = NativePoly(params->GetDgg(), polyParams, Format::COEFFICIENT);
+        // (*result)[i][1] = NativePoly(params->GetDgg(), polyParams, Format::COEFFICIENT);
+        (*result)[i][1] = NativePoly(polyParams, Format::COEFFICIENT, true);
     }
 
     NativeInteger mmn = NativeInteger(mm);
@@ -207,7 +208,11 @@ RingGSWEvalKey BinFHEScheme::RGSWEncrypt(const std::shared_ptr<RingGSWCryptoPara
     return result;
 }
 
-// threshold automorphism key generation
+// RGSW decryption
+// LWEPlaintext BinFHEScheme::RGSWDecrypt(const std::shared_ptr<RingGSWCryptoParams> params, NativePoly acrs,
+//                                         const NativePoly& skNTT, const LWEPlaintext& m, bool leadFlag) const {
+
+// }
 
 // sequential plaintext-ciphertext bootstrap key generation
 

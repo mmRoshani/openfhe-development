@@ -105,8 +105,7 @@ void RingGSWAccumulator::SignedDigitDecompose(const std::shared_ptr<RingGSWCrypt
 
 // Decompose a ring element, not ciphertext
 void RingGSWAccumulator::SignedDigitDecompose(const std::shared_ptr<RingGSWCryptoParams> params,
-                                              const NativePoly& input,
-                                              std::vector<NativePoly>& output) const {
+                                              const NativePoly& input, std::vector<NativePoly>& output) const {
     uint32_t N                           = params->GetN();
     uint32_t digitsG                     = params->GetDigitsG();
     NativeInteger Q                      = params->GetQ();
@@ -139,6 +138,57 @@ void RingGSWAccumulator::SignedDigitDecompose(const std::shared_ptr<RingGSWCrypt
             output[l][k] += r;
         }
     }
-    
+}
+
+RingGSWEvalKey RingGSWAccumulator::RGSWBTEvalMult(const std::shared_ptr<RingGSWCryptoParams> params,
+                                                  RingGSWEvalKey prevbtkey, int32_t si) const {
+    auto polyParams   = params->GetPolyParams();
+    uint32_t N        = params->GetN();
+    uint32_t digitsG  = params->GetDigitsG();
+    uint32_t digitsG2 = digitsG << 1;
+    auto newbtkey     = std::make_shared<RingGSWEvalKeyImpl>(digitsG2, 2);
+
+    // initiate with si and skNTT
+    bool clockwise = true;
+    if (si < 0) {
+        clockwise = false;
+    }
+
+    if (clockwise) {
+        si = (N)-si;
+    }
+    else {
+        si = -si;
+    }
+    auto mod = si % (N);
+
+    // perform the multiplication
+    for (uint32_t i = 0; i < digitsG2; i++) {
+        for (uint32_t j = 0; j < 2; j++) {
+            (*prevbtkey)[i][j].SetFormat(COEFFICIENT);
+            (*newbtkey)[i][j] = NativePoly(polyParams, COEFFICIENT, true);
+            for (uint32_t k = 0; k < N; k++) {
+                int32_t res = (mod + k) % N;
+                if (!clockwise) {
+                    if (res < si) {
+                        (*newbtkey)[i][j][k] = -(*prevbtkey)[i][j][res];
+                    }
+                    else {
+                        (*newbtkey)[i][j][k] = (*prevbtkey)[i][j][res];
+                    }
+                }
+                else {
+                    if (res < si) {
+                        (*newbtkey)[i][j][k] = (*prevbtkey)[i][j][res];
+                    }
+                    else {
+                        (*newbtkey)[i][j][k] = -(*prevbtkey)[i][j][res];
+                    }
+                }
+            }
+            (*newbtkey)[i][j].SetFormat(EVALUATION);
+        }
+    }
+    return newbtkey;
 }
 };  // namespace lbcrypto

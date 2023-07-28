@@ -103,6 +103,9 @@ public:
    */
     void SignedDigitDecompose(const std::shared_ptr<RingGSWCryptoParams> params, const NativePoly& input,
                               std::vector<NativePoly>& output) const;
+
+    RingGSWEvalKey RGSWBTEvalMult(const std::shared_ptr<RingGSWCryptoParams> params, RingGSWEvalKey prevbtkey,
+                                  int32_t si) const;
 };
 }  // namespace lbcrypto
 

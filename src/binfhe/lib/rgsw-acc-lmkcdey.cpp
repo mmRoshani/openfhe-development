@@ -61,79 +61,30 @@ RingGSWACCKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAcc(const std::shared_p
         // compute plaintext-ciphertext multiplication here
         // (*ek)[0][0][i] = KeyGenLMKCDEY(params, skNTT, s);
         //***********************
-        int64_t sm     = (((s % mod) + mod) % mod) * (2 * N / mod);
-        (*ek)[0][0][i] = RGSWBTEvalMult(params, (*prevbtkey)[0][0][i], skNTT, sm);
+        // int64_t sm     = (((s % mod) + mod) % mod) * (2 * N / mod);
+        int64_t sm     = (s % mod) * (2 * N / mod);
+        (*ek)[0][0][i] = RGSWBTEvalMult(params, (*prevbtkey)[0][0][i], sm);
         *((*ek)[0][0][i]) += *(rgswenc0[i]);
     }
     NativeInteger gen = NativeInteger(5);
+    std::cout << "before auto keygen" << std::endl;
 
-    auto mkauto = MultiPartyKeyGenAuto(params, skNTT, 2 * N - gen.ConvertToInt(), acrsauto[0]);
+    auto mkauto = MultiPartyKeyGenAuto(params, (*prevbtkey)[0][1][0], skNTT, 2 * N - gen.ConvertToInt(), acrsauto[0]);
     // todosara (*ek)[0][1][0] = (*prevbtkey)[0][1][0] + (*mkauto);
     (*ek)[0][1][0] = mkauto;
     // m_window: window size, consider parameterization in the future
 #pragma omp parallel for
     for (size_t i = 1; i < m_window + 1; i++) {
-        // todo sara (*ek)[0][1][i] = (*prevbtkey)[0][1][i] +
-        //                 MultiPartyKeyGenAuto(params, skNTT, gen.ModExp(i, 2 * N).ConvertToInt(), acrsauto[i]);
-        // fix + operator for ringGSWEvalKey
-        (*ek)[0][1][i] = MultiPartyKeyGenAuto(params, skNTT, gen.ModExp(i, 2 * N).ConvertToInt(), acrsauto[i]);
+        (*ek)[0][1][i] = MultiPartyKeyGenAuto(params, (*prevbtkey)[0][1][i], skNTT, gen.ModExp(i, 2 * N).ConvertToInt(),
+                                              acrsauto[i]);
     }
-
+    std::cout << "after auto keygen" << std::endl;
     return ek;
 }
 
-RingGSWEvalKey RingGSWAccumulatorLMKCDEY::RGSWBTEvalMult(const std::shared_ptr<RingGSWCryptoParams> params,
-                                                         RingGSWEvalKey prevbtkey, const NativePoly& skNTT,
-                                                         int32_t si) const {
-    auto polyParams   = params->GetPolyParams();
-    uint32_t N        = params->GetN();
-    uint32_t digitsG  = params->GetDigitsG();
-    uint32_t digitsG2 = digitsG << 1;
-    auto newbtkey     = std::make_shared<RingGSWEvalKeyImpl>(digitsG2, 2);
-
-    // initiate with si and skNTT
-    bool clockwise = true;
-    if (si < 0) {
-        clockwise = false;
-    }
-
-    if (clockwise) {
-        si = N - si;
-    }
-    else {
-        si = -si;
-    }
-    auto mod = si % N;
-
-    // perform the multiplication
-    for (uint32_t i = 0; i < digitsG2; i++) {
-        for (uint32_t j = 0; j < 2; j++) {
-            (*newbtkey)[i][j] = NativePoly(polyParams, EVALUATION, true);
-            for (uint32_t k = 0; k < N; k++) {
-                int32_t res = (mod + k) % N;
-                if (!clockwise) {
-                    if (res < si) {
-                        (*newbtkey)[i][j][k] = -(*prevbtkey)[i][j][res];
-                    }
-                    else {
-                        (*newbtkey)[i][j][k] = (*prevbtkey)[i][j][res];
-                    }
-                }
-                else {
-                    if (res < si) {
-                        (*newbtkey)[i][j][k] = (*prevbtkey)[i][j][res];
-                    }
-                    else {
-                        (*newbtkey)[i][j][k] = -(*prevbtkey)[i][j][res];
-                    }
-                }
-            }
-        }
-    }
-    return newbtkey;
-}
 // Generation of an autormorphism key
 RingGSWEvalKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAuto(const std::shared_ptr<RingGSWCryptoParams> params,
+                                                               const RingGSWEvalKey prevautokey,
                                                                const NativePoly& skNTT, const LWEPlaintext& k,
                                                                std::vector<NativePoly> acrsauto) const {
     // NativeInteger Q  = params->GetQ();
@@ -144,13 +95,16 @@ RingGSWEvalKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAuto(const std::shared
 
     auto skAuto = skNTT.AutomorphismTransform(k);
 
+    std::cout << "before auto keygen loop" << std::endl;
     for (uint32_t i = 0; i < digitsG; ++i) {
         acrsauto[i].SetFormat(Format::EVALUATION);
         (*result)[i][0] = acrsauto[i];
         (*result)[i][1] = NativePoly(params->GetDgg(), polyParams, EVALUATION);
         (*result)[i][1] -= skAuto * Gpow[i];
         (*result)[i][1] += (*result)[i][0] * skNTT;
+        (*result)[i][1] += (*prevautokey)[i][1];
     }
+    std::cout << "after auto keygen loop" << std::endl;
     return result;
 }
 

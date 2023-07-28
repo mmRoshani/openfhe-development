@@ -47,7 +47,7 @@ int main() {
     // and HE standard. Other common options are TOY, MEDIUM, STD192, and STD256.
     // MEDIUM corresponds to the level of more than 100 bits for both quantum and
     // classical computer attacks.
-    cc.GenerateBinFHEContext(TOY, LMKCDEY, num_of_parties);  // number of parties is 5
+    cc.GenerateBinFHEContext(TOY, AP, num_of_parties);  // number of parties is 5
 
     // Generate the secret keys s1, z1
     auto sk1 = cc.KeyGen();
@@ -154,13 +154,51 @@ int main() {
 
     auto rgsw1 = cc.RGSWEvalAdd(rgsw1_1, rgsw1_2);
 
+#if 0
+    //*****************************
+    auto rgsw1chk = cc.RGSWEncrypt(acrs, z1+z2, 1, true);
+    auto rgsw0chk = cc.RGSWEncrypt(acrs, z1+z2, 0, true);
+    // auto chkelements = rgsw1->GetElements();
+    auto chk1elements = rgsw1chk->GetElements();
+    auto chk0elements = rgsw0chk->GetElements();
+    // std::cout << "chkelemsize " << chkelements.size() << std::endl;
+    // std::cout << "actelemsize " << actelements.size() << std::endl;
+    // std::cout << "chkelemsize[0] " << chkelements[0].size() << std::endl;
+    // std::cout << "actelemsize[0] " << actelements[0].size() << std::endl;
+
+
+    for (size_t i = 0; i < chk1elements.size(); i++) {
+        for (size_t j = 0; j < chk1elements[0].size(); j++) {
+            std::cout << "j " << j << std::endl;
+            std::cout << "chk1elem[" << i << "][" << j << "] = " << chk1elements[i][j] << std::endl;
+            std::cout << "chk0elem[" << i << "][" << j << "] = " << chk0elements[i][j] << std::endl;
+        }
+    }
+#endif
+    //*****************************
+
     // create btkey with RSGW encryption of 1 for every element of the secret
     uint32_t n = sk1->GetElement().GetLength();
 
+#if 0
+    // for lmkcdey
     RingGSWACCKey rgswe1 = std::make_shared<RingGSWACCKeyImpl>(1, 2, n);
     for (size_t i = 0; i < n; i++) {
         (*rgswe1)[0][0][i] = rgsw1;
     }
+#endif
+    // for dm
+    uint32_t baseR                            = cc.GetParams()->GetRingGSWParams()->GetBaseR();
+    const std::vector<NativeInteger>& digitsR = cc.GetParams()->GetRingGSWParams()->GetDigitsR();
+    RingGSWACCKey rgswe1                      = std::make_shared<RingGSWACCKeyImpl>(n, baseR, digitsR.size());
+    for (size_t i = 0; i < n; i++) {
+        for (size_t j = 1; j < baseR; ++j) {
+            for (size_t k = 0; k < digitsR.size(); ++k) {
+                (*rgswe1)[i][j][k] = rgsw1;
+            }
+        }
+    }
+
     // distributed generation of RGSW_{z_*}(0) will be done while computing the bootstrapping key
     // Sample Program: Step 2: Key Generation
 
@@ -187,10 +225,10 @@ int main() {
     std::vector<std::vector<RingGSWEvalKey>> rgswenc0(num_of_parties, std::vector<RingGSWEvalKey>(n));
     for (uint32_t i = 0; i < num_of_parties; i++) {  // for gen of encryption of 0 at one iteration
         for (uint32_t j = 0; j < n; j++) {           // dimension of secret
-            RingGSWEvalKey rgsw0_1 = cc.RGSWEncrypt(acrs0[0][1][i], zvec[0], 0, true);
+            RingGSWEvalKey rgsw0_1 = cc.RGSWEncrypt(acrs0[i][0][j], zvec[0], 0, true);
             RingGSWEvalKey rgswadd = rgsw0_1;
             for (uint32_t k = 1; k < num_of_parties; k++) {
-                auto rgsw0_i = cc.RGSWEncrypt(acrs0[0][1][i], zvec[k], 0);
+                auto rgsw0_i = cc.RGSWEncrypt(acrs0[i][k][j], zvec[k], 0);
                 rgswadd      = cc.RGSWEvalAdd(rgsw0_i, rgswadd);
             }
             rgswenc0[i][j] = rgswadd;
@@ -211,8 +249,6 @@ int main() {
     cc.MultipartyBTKeyGen(sk1, rgswe1, z1, acrsauto, rgswenc0[0], kskey);
 
     cc.MultipartyBTKeyGen(sk2, cc.GetRefreshKey(), z2, acrsauto, rgswenc0[1], kskey);
-
-    // cc.insertRefreshKey(rgswp5);
 
     std::cout << "Completed the key generation." << std::endl;
 
