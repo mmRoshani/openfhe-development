@@ -40,7 +40,8 @@ RingGSWACCKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAcc(const std::shared_p
                                                              const NativePoly& skNTT, ConstLWEPrivateKey LWEsk,
                                                              RingGSWACCKey prevbtkey,
                                                              std::vector<std::vector<NativePoly>> acrsauto,
-                                                             std::vector<RingGSWEvalKey> rgswenc0) const {
+                                                             std::vector<RingGSWEvalKey> rgswenc0,
+                                                             bool leadFlag) const {
     auto sv         = LWEsk->GetElement();
     int32_t mod     = sv.GetModulus().ConvertToInt();
     int32_t modHalf = mod >> 1;
@@ -62,14 +63,15 @@ RingGSWACCKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAcc(const std::shared_p
         // (*ek)[0][0][i] = KeyGenLMKCDEY(params, skNTT, s);
         //***********************
         // int64_t sm     = (((s % mod) + mod) % mod) * (2 * N / mod);
-        int64_t sm     = (s % mod) * (2 * N / mod);
+        int32_t sm     = (s % mod) * (2 * N / mod);
         (*ek)[0][0][i] = RGSWBTEvalMult(params, (*prevbtkey)[0][0][i], sm);
-        *((*ek)[0][0][i]) += *(rgswenc0[i]);
+        // *((*ek)[0][0][i]) += *(rgswenc0[i]);
     }
     NativeInteger gen = NativeInteger(5);
     std::cout << "before auto keygen" << std::endl;
 
-    auto mkauto = MultiPartyKeyGenAuto(params, (*prevbtkey)[0][1][0], skNTT, 2 * N - gen.ConvertToInt(), acrsauto[0]);
+    auto mkauto =
+        MultiPartyKeyGenAuto(params, (*prevbtkey)[0][1][0], skNTT, 2 * N - gen.ConvertToInt(), acrsauto[0], true);
     // todosara (*ek)[0][1][0] = (*prevbtkey)[0][1][0] + (*mkauto);
     (*ek)[0][1][0] = mkauto;
     // m_window: window size, consider parameterization in the future
@@ -86,7 +88,7 @@ RingGSWACCKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAcc(const std::shared_p
 RingGSWEvalKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAuto(const std::shared_ptr<RingGSWCryptoParams> params,
                                                                const RingGSWEvalKey prevautokey,
                                                                const NativePoly& skNTT, const LWEPlaintext& k,
-                                                               std::vector<NativePoly> acrsauto) const {
+                                                               std::vector<NativePoly> acrsauto, bool leadFlag) const {
     // NativeInteger Q  = params->GetQ();
     uint32_t digitsG = params->GetDigitsG();
     auto polyParams  = params->GetPolyParams();
@@ -102,7 +104,8 @@ RingGSWEvalKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAuto(const std::shared
         (*result)[i][1] = NativePoly(params->GetDgg(), polyParams, EVALUATION);
         (*result)[i][1] -= skAuto * Gpow[i];
         (*result)[i][1] += (*result)[i][0] * skNTT;
-        (*result)[i][1] += (*prevautokey)[i][1];
+        if (!leadFlag)
+            (*result)[i][1] += (*prevautokey)[i][1];
     }
     std::cout << "after auto keygen loop" << std::endl;
     return result;

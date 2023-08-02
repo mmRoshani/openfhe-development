@@ -108,6 +108,8 @@ public:
    */
     RingGSWBTKey KeyGen(const std::shared_ptr<BinFHECryptoParams> params, ConstLWEPrivateKey LWEsk,
                         KEYGEN_MODE keygenMode) const;
+    RingGSWBTKey KeyGenTest(const std::shared_ptr<BinFHECryptoParams> params, ConstLWEPrivateKey LWEsk,
+                            NativePoly skNPoly, NativePoly acrs, KEYGEN_MODE keygenMode = SYM_ENCRYPT) const;
 
     RingGSWBTKey MultiPartyKeyGen(const std::shared_ptr<LWECryptoParams> params, ConstLWEPrivateKey LWEsk,
                                   const NativePoly zN, const LWEPublicKey publicKey, LWESwitchingKey prevkskey,
@@ -115,7 +117,8 @@ public:
     RingGSWBTKey MultipartyBTKeyGen(const std::shared_ptr<BinFHECryptoParams> params, ConstLWEPrivateKey LWEsk,
                                     RingGSWACCKey prevbtkey, NativePoly zkey,
                                     std::vector<std::vector<NativePoly>> acrsauto, std::vector<RingGSWEvalKey> rgswenc0,
-                                    LWESwitchingKey prevkskey = NULL, uint32_t num_of_parties = 1) const;
+                                    LWESwitchingKey prevkskey = NULL, uint32_t num_of_parties = 1,
+                                    bool leadFlag = false) const;
 
     /**
    * Evaluates a binary gate (calls bootstrapping as a subroutine)

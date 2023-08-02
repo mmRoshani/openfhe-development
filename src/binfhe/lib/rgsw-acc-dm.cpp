@@ -62,18 +62,17 @@ RingGSWACCKey RingGSWAccumulatorDM::KeyGenAcc(const std::shared_ptr<RingGSWCrypt
         }
     }
 
+    std::cout << "refresh key in KeyGenAcc: " << (*ek)[n - 1][baseR - 1][digitsR.size() - 1] << std::endl;
     return ek;
 }
 
 // Key generation as described in Section 4 of https://eprint.iacr.org/2014/816
-RingGSWACCKey RingGSWAccumulatorDM::MultiPartyKeyGenAcc(const std::shared_ptr<RingGSWCryptoParams> params,
-                                                        const NativePoly& skNTT, ConstLWEPrivateKey LWEsk,
-                                                        RingGSWACCKey prevbtkey,
-                                                        std::vector<std::vector<NativePoly>> acrsauto,
-                                                        std::vector<RingGSWEvalKey> rgswenc0) const {
-    auto sv         = LWEsk->GetElement();
-    int32_t mod     = sv.GetModulus().ConvertToInt();
-    uint32_t N      = params->GetN();
+RingGSWACCKey RingGSWAccumulatorDM::KeyGenAccTest(const std::shared_ptr<RingGSWCryptoParams> params,
+                                                  const NativePoly& skNTT, ConstLWEPrivateKey LWEsk,
+                                                  NativePoly acrs) const {
+    auto sv     = LWEsk->GetElement();
+    int32_t mod = sv.GetModulus().ConvertToInt();
+
     int32_t modHalf = mod >> 1;
 
     uint32_t baseR                            = params->GetBaseR();
@@ -90,13 +89,61 @@ RingGSWACCKey RingGSWAccumulatorDM::MultiPartyKeyGenAcc(const std::shared_ptr<Ri
                     s -= mod;
                 }
 
-                // (*ek)[i][j][k] = KeyGenDM(params, skNTT, s * j * (int32_t)digitsR[k].ConvertToInt());
-                int64_t sm     = (s % mod) * (2 * N / mod);
-                (*ek)[i][j][k] = RGSWBTEvalMult(params, (*prevbtkey)[i][j][k], sm);
-                *((*ek)[i][j][k]) += *(rgswenc0[i]);
+                (*ek)[i][j][k] = KeyGenDMTest(params, skNTT, s * j * (int32_t)digitsR[k].ConvertToInt(), acrs);
             }
         }
     }
+
+    std::cout << "refresh key in KeyGenAcc: " << (*ek)[n - 1][baseR - 1][digitsR.size() - 1] << std::endl;
+    return ek;
+}
+
+// Key generation as described in Section 4 of https://eprint.iacr.org/2014/816
+RingGSWACCKey RingGSWAccumulatorDM::MultiPartyKeyGenAcc(const std::shared_ptr<RingGSWCryptoParams> params,
+                                                        const NativePoly& skNTT, ConstLWEPrivateKey LWEsk,
+                                                        RingGSWACCKey prevbtkey,
+                                                        std::vector<std::vector<NativePoly>> acrsauto,
+                                                        std::vector<RingGSWEvalKey> rgswenc0, bool leadFlag) const {
+    auto sv         = LWEsk->GetElement();
+    int32_t mod     = sv.GetModulus().ConvertToInt();
+    uint32_t N      = params->GetN();
+    int32_t modHalf = mod >> 1;
+
+    uint32_t baseR                            = params->GetBaseR();
+    const std::vector<NativeInteger>& digitsR = params->GetDigitsR();
+    uint32_t n                                = sv.GetLength();
+    RingGSWACCKey ek                          = std::make_shared<RingGSWACCKeyImpl>(n, baseR, digitsR.size());
+
+    std::cout << "refresh key before loop in MultipartyKeyGenAcc: " << (*ek)[n - 1][baseR - 1][digitsR.size() - 1]
+              << std::endl;
+
+    std::cout << "before  loop in mp keygenacc" << std::endl;
+#pragma omp parallel for
+    for (size_t i = 0; i < n; ++i) {
+        for (size_t j = 1; j < baseR; ++j) {
+            for (size_t k = 0; k < digitsR.size(); ++k) {
+                int32_t s = (int32_t)sv[i].ConvertToInt();
+                if (s > modHalf) {
+                    s -= mod;
+                }
+
+                // (*ek)[i][j][k] = KeyGenDM(params, skNTT, s * j * (int32_t)digitsR[k].ConvertToInt());
+                // std::cout << "i: " << i << std::endl;
+                // std::cout << "si before 2N/q: " << s << std::endl;
+                // std::cout << "2N: " << (2 * N) << std::endl;
+                // std::cout << "q: " << mod << std::endl;
+                // std::cout << "2N/q: " << (2 * N / mod) << std::endl;
+                int32_t sm = (s % mod) * (2 * N / mod);
+                // std::cout << "si passed to mult: " << sm << std::endl;
+                // std::cout << "before evalmult mp keygenacc" << (*(*prevbtkey)[i][j][k])[0][0] << std::endl;
+                (*ek)[i][j][k] = RGSWBTEvalMult(params, (*prevbtkey)[i][j][k], sm);
+                // std::cout << "before evalmult mp keygenacc" << (*(*ek)[i][j][k])[0][0] << std::endl;
+                // *((*ek)[i][j][k]) += *(rgswenc0[i]);
+            }
+        }
+    }
+    std::cout << "after  loop in mp keygenacc" << std::endl;
+    std::cout << "refresh key in MultipartyKeyGenAcc: " << (*ek)[n - 1][baseR - 1][digitsR.size() - 1] << std::endl;
     return ek;
 }
 
@@ -177,6 +224,67 @@ RingGSWEvalKey RingGSWAccumulatorDM::KeyGenDM(const std::shared_ptr<RingGSWCrypt
     return result;
 }
 
+// Encryption as described in Section 5 of https://eprint.iacr.org/2014/816
+// skNTT corresponds to the secret key z
+RingGSWEvalKey RingGSWAccumulatorDM::KeyGenDMTest(const std::shared_ptr<RingGSWCryptoParams> params,
+                                                  const NativePoly& skNTT, const LWEPlaintext& m,
+                                                  NativePoly acrs) const {
+    NativeInteger Q   = params->GetQ();
+    uint64_t q        = params->Getq().ConvertToInt();
+    uint32_t N        = params->GetN();
+    uint32_t digitsG  = params->GetDigitsG();
+    uint32_t digitsG2 = digitsG << 1;
+    auto polyParams   = params->GetPolyParams();
+    auto Gpow         = params->GetGPower();
+    auto result       = std::make_shared<RingGSWEvalKeyImpl>(digitsG2, 2);
+
+    DiscreteUniformGeneratorImpl<NativeVector> dug;
+    dug.SetModulus(Q);
+
+    // Reduce mod q (dealing with negative number as well)
+    int64_t mm       = (((m % q) + q) % q) * (2 * N / q);
+    bool isReducedMM = false;
+    if (mm >= N) {
+        mm -= N;
+        isReducedMM = true;
+    }
+
+    // tempA is introduced to minimize the number of NTTs
+    std::vector<NativePoly> tempA(digitsG2);
+
+    for (size_t i = 0; i < digitsG2; ++i) {
+        // populate result[i][0] with uniform random a
+        // (*result)[i][0] = NativePoly(dug, polyParams, Format::COEFFICIENT);
+        (*result)[i][0] = acrs;
+        tempA[i]        = (*result)[i][0];
+        // populate result[i][1] with 0 error e
+        (*result)[i][1] = NativePoly(polyParams, Format::COEFFICIENT, true);
+    }
+
+    for (size_t i = 0; i < digitsG; ++i) {
+        if (!isReducedMM) {
+            // Add G Multiple
+            (*result)[2 * i][0][mm].ModAddEq(Gpow[i], Q);
+            // [a,as+e] + X^m*G
+            (*result)[2 * i + 1][1][mm].ModAddEq(Gpow[i], Q);
+        }
+        else {
+            // Subtract G Multiple
+            (*result)[2 * i][0][mm].ModSubEq(Gpow[i], Q);
+            // [a,as+e] - X^m*G
+            (*result)[2 * i + 1][1][mm].ModSubEq(Gpow[i], Q);
+        }
+    }
+
+    // 3*digitsG2 NTTs are called
+    result->SetFormat(Format::EVALUATION);
+    for (size_t i = 0; i < digitsG2; ++i) {
+        tempA[i].SetFormat(Format::EVALUATION);
+        (*result)[i][1] += tempA[i] * skNTT;
+    }
+
+    return result;
+}
 // AP Accumulation as described in https://eprint.iacr.org/2020/086
 void RingGSWAccumulatorDM::AddToAccDM(const std::shared_ptr<RingGSWCryptoParams> params, const RingGSWEvalKey ek,
                                       RLWECiphertext& acc) const {

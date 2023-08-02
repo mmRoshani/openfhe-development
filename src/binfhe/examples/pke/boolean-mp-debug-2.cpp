@@ -157,7 +157,7 @@ int main() {
     auto rgsw1 = cc.RGSWEvalAdd(rgsw1_1, rgsw1_2);
 
 #if 0
-    // *****************************
+    //*****************************
     auto rgsw1chk = cc.RGSWEncrypt(acrs, z1+z2, 1, true);
     auto rgsw0chk = cc.RGSWEncrypt(acrs, z1+z2, 0, true);
     // auto chkelements = rgsw1->GetElements();
@@ -177,7 +177,7 @@ int main() {
         }
     }
 #endif
-    // *****************************
+    //*****************************
 
     // create btkey with RSGW encryption of 1 for every element of the secret
     uint32_t n = sk1->GetElement().GetLength();
@@ -251,16 +251,21 @@ int main() {
     std::cout << "secret key sk mod in example: " << sk1->GetModulus() << std::endl;
     // std::cout << "refresh key before: " << (*cc.GetRefreshKey())[0][0][0] << std::endl;
     // Generate the bootstrapping keys (refresh, switching and public keys)
-    cc.MultipartyBTKeyGen(sk1, rgswe1, z1, acrsauto, rgswenc0[0], kskey, true);
-
+    // cc.MultipartyBTKeyGen(sk1, rgswe1, z1, acrsauto, rgswenc0[0], kskey, true);
+    cc.BTKeyGenTest(sk1, z1 + z2, acrs);
+    std::cout << "refresh key 1st 1: " << (*(*cc.GetRefreshKey())[0][1][0])[0][0] << std::endl;
+    // cc.BTKeyGenTest(sk1, z1+z2, acrs);
+    // std::cout << "refresh key 1st 2: " << (*(*cc.GetRefreshKey())[0][1][0])[0][0] << std::endl;
     cc.MultipartyBTKeyGen(sk2, cc.GetRefreshKey(), z2, acrsauto, rgswenc0[1], kskey);
 
-    // check the refrsh key
+// check the refrsh key
+#if 0
     std::cout << "refresh key mp: " << (*(*cc.GetRefreshKey())[0][1][0])[0][0] << std::endl;
-    auto sk12v         = sk1->GetElement() + sk2->GetElement();
+    auto sk12v          = sk1->GetElement() + sk2->GetElement();
     LWEPrivateKey sk12 = std::make_shared<LWEPrivateKeyImpl>(sk12v);
     cc.MultipartyBTKeyGen(sk12, rgswe1, z1 + z2, acrsauto, rgswenc0[1], kskey, true);
     std::cout << "refresh key sk1 + sk2: " << (*(*cc.GetRefreshKey())[0][1][0])[0][0] << std::endl;
+#endif
     std::cout << "Completed the key generation." << std::endl;
 
     // Sample Program: Step 4: Evaluation

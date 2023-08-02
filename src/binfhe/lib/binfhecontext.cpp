@@ -186,10 +186,10 @@ void BinFHEContext::GenerateBinFHEContext(BINFHE_PARAMSET set, BINFHE_METHOD met
 LWEPrivateKey BinFHEContext::KeyGen() const {
     auto& LWEParams = m_params->GetLWEParams();
     if (LWEParams->GetKeyDist() == GAUSSIAN) {
-        return m_LWEscheme->KeyGenGaussian(LWEParams->Getn(), LWEParams->GetqKS());
+        return m_LWEscheme->KeyGenGaussian(LWEParams->Getn(), LWEParams->Getq());  // KS());
     }
     else {
-        return m_LWEscheme->KeyGen(LWEParams->Getn(), LWEParams->GetqKS());
+        return m_LWEscheme->KeyGen(LWEParams->Getn(), LWEParams->Getq());  // KS());
     }
 }
 
@@ -359,9 +359,18 @@ void BinFHEContext::BTKeyGen(ConstLWEPrivateKey sk, KEYGEN_MODE keygenMode) {
     }
 }
 
+void BinFHEContext::BTKeyGenTest(ConstLWEPrivateKey sk, NativePoly skNPoly, NativePoly acrs, KEYGEN_MODE keygenMode) {
+    auto& RGSWParams = m_params->GetRingGSWParams();
+
+    auto temp = RGSWParams->GetBaseG();
+
+    m_BTKey           = m_binfhescheme->KeyGenTest(m_params, sk, skNPoly, acrs, keygenMode);
+    m_BTKey_map[temp] = m_BTKey;
+}
+
 void BinFHEContext::MultipartyBTKeyGen(ConstLWEPrivateKey sk, RingGSWACCKey prevbtkey, NativePoly zkey,
                                        std::vector<std::vector<NativePoly>> acrsauto,
-                                       std::vector<RingGSWEvalKey> rgswenc0, LWESwitchingKey prevkskey) {
+                                       std::vector<RingGSWEvalKey> rgswenc0, LWESwitchingKey prevkskey, bool leadFlag) {
     auto& RGSWParams = m_params->GetRingGSWParams();
     auto temp        = RGSWParams->GetBaseG();
 
@@ -370,7 +379,7 @@ void BinFHEContext::MultipartyBTKeyGen(ConstLWEPrivateKey sk, RingGSWACCKey prev
     // }
     // else {
     m_BTKey           = m_binfhescheme->MultipartyBTKeyGen(m_params, sk, prevbtkey, zkey, acrsauto, rgswenc0, prevkskey,
-                                                           m_binfhescheme->get_num_of_parties());
+                                                           m_binfhescheme->get_num_of_parties(), leadFlag);
     m_BTKey_map[temp] = m_BTKey;
     // }
     return;

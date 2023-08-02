@@ -46,7 +46,7 @@ int main() {
     // and HE standard. Other common options are TOY, MEDIUM, STD192, and STD256.
     // MEDIUM corresponds to the level of more than 100 bits for both quantum and
     // classical computer attacks.
-    cc.GenerateBinFHEContext(STD128);
+    cc.GenerateBinFHEContext(TOY);
 
     // Sample Program: Step 2: Key Generation
 
@@ -58,6 +58,7 @@ int main() {
     // Generate the bootstrapping keys (refresh and switching keys)
     cc.BTKeyGen(sk);
 
+    std::cout << "refresh key: " << (*(*cc.GetRefreshKey())[0][0][0])[0][0] << std::endl;
     std::cout << "Completed the key generation." << std::endl;
 
     // Sample Program: Step 3: Encryption
@@ -83,6 +84,7 @@ int main() {
     // Computes OR of the results in ctAND1 and ctAND2 = 1
     auto ctResult = cc.EvalBinGate(OR, ctAND1, ctAND2);
 
+    std::cout << "sk modulus " << sk->GetModulus() << std::endl;
     // Sample Program: Step 5: Decryption
 
     LWEPlaintext result;

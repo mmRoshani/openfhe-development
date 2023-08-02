@@ -252,10 +252,10 @@ public:
    * @param DiffQ BTKeyGen according to DiffQ instead of m_q if DiffQ != 0
    */
     void BTKeyGen(ConstLWEPrivateKey sk, KEYGEN_MODE keygenMode = SYM_ENCRYPT);
-
+    void BTKeyGenTest(ConstLWEPrivateKey sk, NativePoly skNPoly, NativePoly acrs, KEYGEN_MODE keygenMode = SYM_ENCRYPT);
     void MultipartyBTKeyGen(ConstLWEPrivateKey sk, RingGSWACCKey prevbtkey, NativePoly zkey,
                             std::vector<std::vector<NativePoly>> acrsauto, std::vector<RingGSWEvalKey> rgswenc0,
-                            LWESwitchingKey prevkskey = NULL);
+                            LWESwitchingKey prevkskey = NULL, bool leadFlag = false);
     void MultipartyAutoKeygen();
 
     /**

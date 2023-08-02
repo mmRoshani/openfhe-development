@@ -145,9 +145,20 @@ RingGSWEvalKey RingGSWAccumulator::RGSWBTEvalMult(const std::shared_ptr<RingGSWC
     auto polyParams   = params->GetPolyParams();
     uint32_t N        = params->GetN();
     uint32_t digitsG  = params->GetDigitsG();
+    auto modulus      = params->GetQ();
     uint32_t digitsG2 = digitsG << 1;
-    auto newbtkey     = std::make_shared<RingGSWEvalKeyImpl>(digitsG2, 2);
+    prevbtkey->SetFormat(COEFFICIENT);
+    auto newbtkey = std::make_shared<RingGSWEvalKeyImpl>(digitsG2, 2);
 
+    for (uint32_t i = 0; i < digitsG2; i++) {
+        for (uint32_t j = 0; j < 2; j++) {
+            (*prevbtkey)[i][j].SetFormat(COEFFICIENT);
+            (*newbtkey)[i][j] = NativePoly(polyParams, COEFFICIENT, true);
+            for (uint32_t k = 0; k < N; k++) {
+                (*newbtkey)[i][j][k] = (*prevbtkey)[i][j][k];
+            }
+        }
+    }
     // initiate with si and skNTT
     bool clockwise = true;
     if (si < 0) {
@@ -162,6 +173,9 @@ RingGSWEvalKey RingGSWAccumulator::RGSWBTEvalMult(const std::shared_ptr<RingGSWC
     }
     auto mod = si % (N);
 
+// std::cout << "si mod N in mult: " << mod << std::endl;
+// std::cout << "mod Q in mult: " << modulus << std::endl;
+#if 0
     // perform the multiplication
     for (uint32_t i = 0; i < digitsG2; i++) {
         for (uint32_t j = 0; j < 2; j++) {
@@ -189,6 +203,45 @@ RingGSWEvalKey RingGSWAccumulator::RGSWBTEvalMult(const std::shared_ptr<RingGSWC
             (*newbtkey)[i][j].SetFormat(EVALUATION);
         }
     }
+#endif
+    // std::cout << "before loop " << (*newbtkey)[0][0][0] << std::endl;
+    // std::cout << "before loop prev " << (*prevbtkey)[0][0][0] << std::endl;
+    for (uint32_t i = 0; i < digitsG; i++) {
+        // std::cout << "original poly0: " << (*prevbtkey)[2 * i][0] << std::endl;
+        for (uint32_t k = 0; k < N; k++) {
+            int32_t res = (mod + k) % N;
+            if (!clockwise) {
+                if (res < si) {
+                    (*newbtkey)[2 * i][0][k]     = modulus - (*prevbtkey)[2 * i][0][res];
+                    (*newbtkey)[2 * i + 1][1][k] = modulus - (*prevbtkey)[2 * i + 1][1][res];
+                }
+                else {
+                    (*newbtkey)[2 * i][0][k]     = (*prevbtkey)[2 * i][0][res];
+                    (*newbtkey)[2 * i + 1][1][k] = (*prevbtkey)[2 * i + 1][1][res];
+                }
+            }
+            else {
+                if (res < si) {
+                    (*newbtkey)[2 * i][0][k]     = (*prevbtkey)[2 * i][0][res];
+                    (*newbtkey)[2 * i + 1][1][k] = (*prevbtkey)[2 * i + 1][1][res];
+                }
+                else {
+                    (*newbtkey)[2 * i][0][k]     = modulus - (*prevbtkey)[2 * i][0][res];
+                    (*newbtkey)[2 * i + 1][1][k] = modulus - (*prevbtkey)[2 * i + 1][1][res];
+                }
+            }
+        }
+        // std::cout << "si mod N in mult: " << mod << std::endl;
+        // std::cout << "original poly0: " << (*prevbtkey)[2 * i][0] << std::endl;
+        // std::cout << "rotated poly0: " << (*newbtkey)[2 * i][0] << std::endl;
+        // std::cout << "original poly1: " << (*prevbtkey)[2 * i + 1][1] << std::endl;
+        // std::cout << "rotated poly1: " << (*newbtkey)[2 * i + 1][1] << std::endl;
+    }
+
+    // std::cout << "after loop" << std::endl;
+
+    newbtkey->SetFormat(EVALUATION);
+    prevbtkey->SetFormat(EVALUATION);
     return newbtkey;
 }
 };  // namespace lbcrypto
