@@ -245,6 +245,7 @@ public:
                                bool leadFlag = false) const;
     // RingGSWCiphertext
     RingGSWEvalKey RGSWEvalAdd(RingGSWEvalKey a, RingGSWEvalKey b);
+    LWEPlaintext RGSWDecrypt(RingGSWEvalKey ct, const NativePoly& skNTT) const;
     /**
    * Generates boostrapping keys
    *

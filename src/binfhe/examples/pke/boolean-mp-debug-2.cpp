@@ -156,6 +156,8 @@ int main() {
 
     auto rgsw1 = cc.RGSWEvalAdd(rgsw1_1, rgsw1_2);
 
+    std::cout << "rgsw decrypt z1: " << cc.RGSWDecrypt(rgsw1_1, z1) << std::endl;
+    std::cout << "rgsw decrypt z1 + z2: " << cc.RGSWDecrypt(rgsw1, z1 + z2) << std::endl;
 #if 0
     //*****************************
     auto rgsw1chk = cc.RGSWEncrypt(acrs, z1+z2, 1, true);
@@ -231,13 +233,15 @@ int main() {
             RingGSWEvalKey rgsw0_1 = cc.RGSWEncrypt(acrs0[i][0][j], zvec[0], 0, true);
             RingGSWEvalKey rgswadd = rgsw0_1;
             for (uint32_t k = 1; k < num_of_parties; k++) {
-                auto rgsw0_i = cc.RGSWEncrypt(acrs0[i][k][j], zvec[k], 0);
-                rgswadd      = cc.RGSWEvalAdd(rgsw0_i, rgswadd);
+                auto rgsw0_i     = cc.RGSWEncrypt(acrs0[i][0][j], zvec[k], 0);
+                auto rgswaddtemp = cc.RGSWEvalAdd(rgsw0_i, rgswadd);
+                rgswadd          = rgswaddtemp;
             }
             rgswenc0[i][j] = rgswadd;
         }
     }
 
+    std::cout << "rgsw decrypt 0 z1 + z2: " << cc.RGSWDecrypt(rgswenc0[0][0], z1 + z2) << std::endl;
     // generate acrs for rgsw encryptions of 0 for automorphism keygen
     uint32_t digitsG  = cc.GetParams()->GetRingGSWParams()->GetDigitsG();
     uint32_t m_window = 10;  // need to be sure this is the same value in rgsw-acc-lmkcdey.h
@@ -251,8 +255,9 @@ int main() {
     std::cout << "secret key sk mod in example: " << sk1->GetModulus() << std::endl;
     // std::cout << "refresh key before: " << (*cc.GetRefreshKey())[0][0][0] << std::endl;
     // Generate the bootstrapping keys (refresh, switching and public keys)
-    // cc.MultipartyBTKeyGen(sk1, rgswe1, z1, acrsauto, rgswenc0[0], kskey, true);
-    cc.BTKeyGenTest(sk1, z1 + z2, acrs);
+    cc.MultipartyBTKeyGen(sk1, rgswe1, z1, acrsauto, rgswenc0[0], kskey, true);
+
+    // cc.BTKeyGenTest(sk1, z1 + z2, acrs);
     std::cout << "refresh key 1st 1: " << (*(*cc.GetRefreshKey())[0][1][0])[0][0] << std::endl;
     // cc.BTKeyGenTest(sk1, z1+z2, acrs);
     // std::cout << "refresh key 1st 2: " << (*(*cc.GetRefreshKey())[0][1][0])[0][0] << std::endl;

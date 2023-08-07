@@ -88,6 +88,8 @@ public:
 
     // RingGSWCiphertext
     RingGSWEvalKey RGSWEvalAdd(RingGSWEvalKey a, RingGSWEvalKey b);
+    LWEPlaintext RGSWDecrypt(const std::shared_ptr<RingGSWCryptoParams> params, RingGSWEvalKey ct,
+                             const NativePoly& skNTT) const;
     uint32_t get_num_of_parties() {
         return m_num_of_parties;
     }

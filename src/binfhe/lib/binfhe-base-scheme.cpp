@@ -242,10 +242,21 @@ RingGSWEvalKey BinFHEScheme::RGSWEncrypt(const std::shared_ptr<RingGSWCryptoPara
 }
 
 // RGSW decryption
-// LWEPlaintext BinFHEScheme::RGSWDecrypt(const std::shared_ptr<RingGSWCryptoParams> params, NativePoly acrs,
-//                                         const NativePoly& skNTT, const LWEPlaintext& m, bool leadFlag) const {
-
-// }
+LWEPlaintext BinFHEScheme::RGSWDecrypt(const std::shared_ptr<RingGSWCryptoParams> params, RingGSWEvalKey ct,
+                                       const NativePoly& skNTT) const {
+    // std::vector<NativePoly> dec;
+    NativePoly dec0;
+// uint32_t digitsG  = params->GetDigitsG();
+#if 0
+    for (size_t i = 0; i < digitsG; ++i) {
+        std::cout << "i: " << i << std::endl;
+        dec[i] = (*ct)[2 * i + 1][1];  // - (*ct)[2 * i + 1][0]*skNTT;
+    }
+#endif
+    dec0 = (*ct)[1][1] - (*ct)[1][0] * skNTT;
+    // round dec[0][0]
+    return dec0[0].ConvertToInt();
+}
 
 // sequential plaintext-ciphertext bootstrap key generation
 

@@ -335,6 +335,11 @@ RingGSWEvalKey BinFHEContext::RGSWEvalAdd(RingGSWEvalKey a, RingGSWEvalKey b) {
     return m_binfhescheme->RGSWEvalAdd(a, b);
 }
 
+LWEPlaintext BinFHEContext::RGSWDecrypt(RingGSWEvalKey ct, const NativePoly& skNTT) const {
+    auto& RGSWParams = m_params->GetRingGSWParams();
+    return m_binfhescheme->RGSWDecrypt(RGSWParams, ct, skNTT);
+}
+
 void BinFHEContext::BTKeyGen(ConstLWEPrivateKey sk, KEYGEN_MODE keygenMode) {
     auto& RGSWParams = m_params->GetRingGSWParams();
 

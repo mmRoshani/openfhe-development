@@ -152,7 +152,7 @@ RingGSWEvalKey RingGSWAccumulator::RGSWBTEvalMult(const std::shared_ptr<RingGSWC
 
     for (uint32_t i = 0; i < digitsG2; i++) {
         for (uint32_t j = 0; j < 2; j++) {
-            (*prevbtkey)[i][j].SetFormat(COEFFICIENT);
+            // (*prevbtkey)[i][j].SetFormat(COEFFICIENT);
             (*newbtkey)[i][j] = NativePoly(polyParams, COEFFICIENT, true);
             for (uint32_t k = 0; k < N; k++) {
                 (*newbtkey)[i][j][k] = (*prevbtkey)[i][j][k];
@@ -173,19 +173,16 @@ RingGSWEvalKey RingGSWAccumulator::RGSWBTEvalMult(const std::shared_ptr<RingGSWC
     }
     auto mod = si % (N);
 
-// std::cout << "si mod N in mult: " << mod << std::endl;
-// std::cout << "mod Q in mult: " << modulus << std::endl;
-#if 0
+    // std::cout << "si mod N in mult: " << mod << std::endl;
+    // std::cout << "mod Q in mult: " << modulus << std::endl;
     // perform the multiplication
     for (uint32_t i = 0; i < digitsG2; i++) {
         for (uint32_t j = 0; j < 2; j++) {
-            (*prevbtkey)[i][j].SetFormat(COEFFICIENT);
-            (*newbtkey)[i][j] = NativePoly(polyParams, COEFFICIENT, true);
             for (uint32_t k = 0; k < N; k++) {
                 int32_t res = (mod + k) % N;
                 if (!clockwise) {
                     if (res < si) {
-                        (*newbtkey)[i][j][k] = -(*prevbtkey)[i][j][res];
+                        (*newbtkey)[i][j][k] = modulus - (*prevbtkey)[i][j][res];
                     }
                     else {
                         (*newbtkey)[i][j][k] = (*prevbtkey)[i][j][res];
@@ -196,14 +193,18 @@ RingGSWEvalKey RingGSWAccumulator::RGSWBTEvalMult(const std::shared_ptr<RingGSWC
                         (*newbtkey)[i][j][k] = (*prevbtkey)[i][j][res];
                     }
                     else {
-                        (*newbtkey)[i][j][k] = -(*prevbtkey)[i][j][res];
+                        (*newbtkey)[i][j][k] = modulus - (*prevbtkey)[i][j][res];
                     }
                 }
             }
-            (*newbtkey)[i][j].SetFormat(EVALUATION);
         }
+        // std::cout << "si mod N in mult: " << mod << std::endl;
+        // std::cout << "original poly0: " << (*prevbtkey)[i][0] << std::endl;
+        // std::cout << "rotated poly0: " << (*newbtkey)[i][0] << std::endl;
+        // std::cout << "original poly1: " << (*prevbtkey)[2 * i + 1][1] << std::endl;
+        // std::cout << "rotated poly1: " << (*newbtkey)[2 * i + 1][1] << std::endl;
     }
-#endif
+#if 0
     // std::cout << "before loop " << (*newbtkey)[0][0][0] << std::endl;
     // std::cout << "before loop prev " << (*prevbtkey)[0][0][0] << std::endl;
     for (uint32_t i = 0; i < digitsG; i++) {
@@ -231,13 +232,14 @@ RingGSWEvalKey RingGSWAccumulator::RGSWBTEvalMult(const std::shared_ptr<RingGSWC
                 }
             }
         }
+
         // std::cout << "si mod N in mult: " << mod << std::endl;
         // std::cout << "original poly0: " << (*prevbtkey)[2 * i][0] << std::endl;
         // std::cout << "rotated poly0: " << (*newbtkey)[2 * i][0] << std::endl;
         // std::cout << "original poly1: " << (*prevbtkey)[2 * i + 1][1] << std::endl;
         // std::cout << "rotated poly1: " << (*newbtkey)[2 * i + 1][1] << std::endl;
     }
-
+#endif
     // std::cout << "after loop" << std::endl;
 
     newbtkey->SetFormat(EVALUATION);
