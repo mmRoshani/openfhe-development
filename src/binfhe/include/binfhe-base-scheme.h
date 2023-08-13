@@ -111,7 +111,8 @@ public:
     RingGSWBTKey KeyGen(const std::shared_ptr<BinFHECryptoParams> params, ConstLWEPrivateKey LWEsk,
                         KEYGEN_MODE keygenMode) const;
     RingGSWBTKey KeyGenTest(const std::shared_ptr<BinFHECryptoParams> params, ConstLWEPrivateKey LWEsk,
-                            NativePoly skNPoly, NativePoly acrs, KEYGEN_MODE keygenMode = SYM_ENCRYPT) const;
+                            NativePoly skNPoly, NativePoly acrs, LWESwitchingKey kskey,
+                            KEYGEN_MODE keygenMode = SYM_ENCRYPT) const;
 
     RingGSWBTKey MultiPartyKeyGen(const std::shared_ptr<LWECryptoParams> params, ConstLWEPrivateKey LWEsk,
                                   const NativePoly zN, const LWEPublicKey publicKey, LWESwitchingKey prevkskey,

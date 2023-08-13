@@ -68,7 +68,6 @@ RingGSWACCKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAcc(const std::shared_p
         // *((*ek)[0][0][i]) += *(rgswenc0[i]);
     }
     NativeInteger gen = NativeInteger(5);
-    std::cout << "before auto keygen" << std::endl;
 
     auto mkauto =
         MultiPartyKeyGenAuto(params, (*prevbtkey)[0][1][0], skNTT, 2 * N - gen.ConvertToInt(), acrsauto[0], true);
@@ -97,7 +96,6 @@ RingGSWEvalKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAuto(const std::shared
 
     auto skAuto = skNTT.AutomorphismTransform(k);
 
-    std::cout << "before auto keygen loop" << std::endl;
     for (uint32_t i = 0; i < digitsG; ++i) {
         acrsauto[i].SetFormat(Format::EVALUATION);
         (*result)[i][0] = acrsauto[i];
@@ -107,7 +105,6 @@ RingGSWEvalKey RingGSWAccumulatorLMKCDEY::MultiPartyKeyGenAuto(const std::shared
         if (!leadFlag)
             (*result)[i][1] += (*prevautokey)[i][1];
     }
-    std::cout << "after auto keygen loop" << std::endl;
     return result;
 }
 

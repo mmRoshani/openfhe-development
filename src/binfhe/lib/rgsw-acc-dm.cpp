@@ -53,10 +53,12 @@ RingGSWACCKey RingGSWAccumulatorDM::KeyGenAcc(const std::shared_ptr<RingGSWCrypt
         for (size_t j = 1; j < baseR; ++j) {
             for (size_t k = 0; k < digitsR.size(); ++k) {
                 int32_t s = (int32_t)sv[i].ConvertToInt();
+                std::cout << "s in keygenacc: " << s << std::endl;
                 if (s > modHalf) {
                     s -= mod;
                 }
 
+                std::cout << "s after if in keygenacc: " << s << std::endl;
                 (*ek)[i][j][k] = KeyGenDM(params, skNTT, s * j * (int32_t)digitsR[k].ConvertToInt());
             }
         }
@@ -104,46 +106,76 @@ RingGSWACCKey RingGSWAccumulatorDM::MultiPartyKeyGenAcc(const std::shared_ptr<Ri
                                                         RingGSWACCKey prevbtkey,
                                                         std::vector<std::vector<NativePoly>> acrsauto,
                                                         std::vector<RingGSWEvalKey> rgswenc0, bool leadFlag) const {
-    auto sv         = LWEsk->GetElement();
-    int32_t mod     = sv.GetModulus().ConvertToInt();
-    uint32_t N      = params->GetN();
-    int32_t modHalf = mod >> 1;
+    auto sv = LWEsk->GetElement();
+    // int32_t mod     = params->Getq().ConvertToInt();//sv.GetModulus().ConvertToInt();
+    // uint32_t N      = params->GetN();
+
+    int32_t modqKS     = sv.GetModulus().ConvertToInt();
+    int32_t modHalfqKS = modqKS >> 1;
 
     uint32_t baseR                            = params->GetBaseR();
     const std::vector<NativeInteger>& digitsR = params->GetDigitsR();
     uint32_t n                                = sv.GetLength();
     RingGSWACCKey ek                          = std::make_shared<RingGSWACCKeyImpl>(n, baseR, digitsR.size());
 
-    std::cout << "refresh key before loop in MultipartyKeyGenAcc: " << (*ek)[n - 1][baseR - 1][digitsR.size() - 1]
-              << std::endl;
-
-    std::cout << "before  loop in mp keygenacc" << std::endl;
+    std::cout << "baseR size " << digitsR.size() << std::endl;
+    std::cout << "digitsR size " << digitsR.size() << std::endl;
+    for (size_t k = 0; k < digitsR.size(); ++k) {
+        std::cout << digitsR[k] << std::endl;
+    }
 #pragma omp parallel for
     for (size_t i = 0; i < n; ++i) {
         for (size_t j = 1; j < baseR; ++j) {
             for (size_t k = 0; k < digitsR.size(); ++k) {
                 int32_t s = (int32_t)sv[i].ConvertToInt();
-                if (s > modHalf) {
-                    s -= mod;
+                if (s > modHalfqKS) {
+                    s -= modqKS;
                 }
 
+                std::cout << "******************" << std::endl;
+                std::cout << "si in mpkeygenacc " << s << std::endl;
                 // (*ek)[i][j][k] = KeyGenDM(params, skNTT, s * j * (int32_t)digitsR[k].ConvertToInt());
-                // std::cout << "i: " << i << std::endl;
-                // std::cout << "si before 2N/q: " << s << std::endl;
-                // std::cout << "2N: " << (2 * N) << std::endl;
-                // std::cout << "q: " << mod << std::endl;
-                // std::cout << "2N/q: " << (2 * N / mod) << std::endl;
-                int32_t sm = (s % mod) * (2 * N / mod);
-                // std::cout << "si passed to mult: " << sm << std::endl;
-                // std::cout << "before evalmult mp keygenacc" << (*(*prevbtkey)[i][j][k])[0][0] << std::endl;
-                (*ek)[i][j][k] = RGSWBTEvalMult(params, (*prevbtkey)[i][j][k], sm);
-                // std::cout << "before evalmult mp keygenacc" << (*(*ek)[i][j][k])[0][0] << std::endl;
+                // int32_t sm = (((smj % mod)) % mod) * (2 * N / mod);
+                // int32_t sm = (((s % mod) + mod) % mod) * (2 * N / mod);
+                // std::cout << "si in mpkeygenacc after 2N/q " << sm << std::endl;
+
+                int32_t smj = s * j * (int32_t)digitsR[k].ConvertToInt();
+                std::cout << "si passed to evalrgswmult " << smj << std::endl;
+                (*ek)[i][j][k] = RGSWBTEvalMult(params, (*prevbtkey)[i][j][k], smj);
                 // *((*ek)[i][j][k]) += *(rgswenc0[i]);
             }
         }
     }
-    std::cout << "after  loop in mp keygenacc" << std::endl;
-    std::cout << "refresh key in MultipartyKeyGenAcc: " << (*ek)[n - 1][baseR - 1][digitsR.size() - 1] << std::endl;
+#if 0
+    // only for debugging
+    std::cout << "modhalf: " << modHalfqKS << std::endl;
+    int32_t s = sv[0].ConvertToInt();
+    std::cout << "si mod N before if in mult: " << s << std::endl;
+    if (s > modHalfqKS) {
+        std::cout << "in if" << std::endl;
+        s -= modqKS;
+    }
+
+    std::cout << "si mod N after if in mult: " << s << std::endl;
+
+    std::cout << "2N: " << (2 * N) << std::endl;
+    std::cout << "q: " << mod << std::endl;
+    std::cout << "2N/q: " << (2 * N / mod) << std::endl;
+
+    int32_t smj = s * 1 * (int32_t)digitsR[0].ConvertToInt();
+    int32_t sm = (smj % mod) * (2 * N / mod);
+
+    std::cout << "si*2N/qin mult: " << sm << std::endl;
+    (*(*prevbtkey)[0][1][0])[0][0].SetFormat(COEFFICIENT);
+    (*(*ek)[0][1][0])[0][0].SetFormat(COEFFICIENT);
+
+    std::cout << "original poly0: " << (*(*prevbtkey)[0][1][0])[0][0] << std::endl;
+    std::cout << "rotated poly0: " << (*(*ek)[0][1][0])[0][0] << std::endl;
+    (*(*prevbtkey)[0][1][0])[0][0].SetFormat(EVALUATION);
+    (*(*ek)[0][1][0])[0][0].SetFormat(EVALUATION);
+    // end of debugging
+#endif
+
     return ek;
 }
 
@@ -180,8 +212,13 @@ RingGSWEvalKey RingGSWAccumulatorDM::KeyGenDM(const std::shared_ptr<RingGSWCrypt
     DiscreteUniformGeneratorImpl<NativeVector> dug;
     dug.SetModulus(Q);
 
+    std::cout << "m in keygendm: " << m << std::endl;
+    std::cout << "q in keygendm: " << q << std::endl;
+
     // Reduce mod q (dealing with negative number as well)
-    int64_t mm       = (((m % q) + q) % q) * (2 * N / q);
+    int64_t mm = (((m % q) + q) % q) * (2 * N / q);
+
+    std::cout << "mm in keygendm: " << mm << std::endl;
     bool isReducedMM = false;
     if (mm >= N) {
         mm -= N;

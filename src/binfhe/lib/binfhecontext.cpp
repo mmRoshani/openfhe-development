@@ -137,6 +137,7 @@ void BinFHEContext::GenerateBinFHEContext(BINFHE_PARAMSET set, BINFHE_METHOD met
     // clang-format off
     const std::unordered_map<BINFHE_PARAMSET, BinFHEContextParams> paramsMap({
         //           numberBits|cyclOrder|latticeParam|  mod|   modKS|  stdDev| baseKS| gadgetBase| baseRK| keyDist
+        //{ TOY,             { 27,     1024,          64,  512,   PRIME, STD_DEV,     25,    1 <<  9,  23,   GAUSSIAN} },
         { TOY,             { 27,     1024,          64,  512,   PRIME, STD_DEV,     25,    1 <<  9,  23,   UNIFORM_TERNARY} },
         { MEDIUM,          { 28,     2048,         422, 1024, 1 << 14, STD_DEV, 1 << 7,    1 << 10,  32,   UNIFORM_TERNARY} },
         { STD128_LMKCDEY,  { 28,     2048,         458, 1024, 1 << 14, STD_DEV, 1 << 7,    1 << 10,  32,   GAUSSIAN       } },
@@ -186,10 +187,10 @@ void BinFHEContext::GenerateBinFHEContext(BINFHE_PARAMSET set, BINFHE_METHOD met
 LWEPrivateKey BinFHEContext::KeyGen() const {
     auto& LWEParams = m_params->GetLWEParams();
     if (LWEParams->GetKeyDist() == GAUSSIAN) {
-        return m_LWEscheme->KeyGenGaussian(LWEParams->Getn(), LWEParams->Getq());  // KS());
+        return m_LWEscheme->KeyGenGaussian(LWEParams->Getn(), LWEParams->GetqKS());
     }
     else {
-        return m_LWEscheme->KeyGen(LWEParams->Getn(), LWEParams->Getq());  // KS());
+        return m_LWEscheme->KeyGen(LWEParams->Getn(), LWEParams->GetqKS());
     }
 }
 
@@ -364,12 +365,13 @@ void BinFHEContext::BTKeyGen(ConstLWEPrivateKey sk, KEYGEN_MODE keygenMode) {
     }
 }
 
-void BinFHEContext::BTKeyGenTest(ConstLWEPrivateKey sk, NativePoly skNPoly, NativePoly acrs, KEYGEN_MODE keygenMode) {
+void BinFHEContext::BTKeyGenTest(ConstLWEPrivateKey sk, NativePoly skNPoly, NativePoly acrs, LWESwitchingKey kskey,
+                                 KEYGEN_MODE keygenMode) {
     auto& RGSWParams = m_params->GetRingGSWParams();
 
     auto temp = RGSWParams->GetBaseG();
 
-    m_BTKey           = m_binfhescheme->KeyGenTest(m_params, sk, skNPoly, acrs, keygenMode);
+    m_BTKey           = m_binfhescheme->KeyGenTest(m_params, sk, skNPoly, acrs, kskey, keygenMode);
     m_BTKey_map[temp] = m_BTKey;
 }
 

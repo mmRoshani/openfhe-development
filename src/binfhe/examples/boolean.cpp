@@ -46,7 +46,7 @@ int main() {
     // and HE standard. Other common options are TOY, MEDIUM, STD192, and STD256.
     // MEDIUM corresponds to the level of more than 100 bits for both quantum and
     // classical computer attacks.
-    cc.GenerateBinFHEContext(TOY);
+    cc.GenerateBinFHEContext(TOY, AP);
 
     // Sample Program: Step 2: Key Generation
 

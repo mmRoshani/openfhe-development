@@ -143,9 +143,10 @@ void RingGSWAccumulator::SignedDigitDecompose(const std::shared_ptr<RingGSWCrypt
 RingGSWEvalKey RingGSWAccumulator::RGSWBTEvalMult(const std::shared_ptr<RingGSWCryptoParams> params,
                                                   RingGSWEvalKey prevbtkey, int32_t si) const {
     auto polyParams   = params->GetPolyParams();
-    uint32_t N        = params->GetN();
+    int32_t N         = params->GetN();
     uint32_t digitsG  = params->GetDigitsG();
     auto modulus      = params->GetQ();
+    auto modq         = params->Getq();
     uint32_t digitsG2 = digitsG << 1;
     prevbtkey->SetFormat(COEFFICIENT);
     auto newbtkey = std::make_shared<RingGSWEvalKeyImpl>(digitsG2, 2);
@@ -154,34 +155,51 @@ RingGSWEvalKey RingGSWAccumulator::RGSWBTEvalMult(const std::shared_ptr<RingGSWC
         for (uint32_t j = 0; j < 2; j++) {
             // (*prevbtkey)[i][j].SetFormat(COEFFICIENT);
             (*newbtkey)[i][j] = NativePoly(polyParams, COEFFICIENT, true);
-            for (uint32_t k = 0; k < N; k++) {
+            for (int32_t k = 0; k < N; k++) {
                 (*newbtkey)[i][j][k] = (*prevbtkey)[i][j][k];
             }
         }
     }
-    // initiate with si and skNTT
+
+    NativeInteger sv;
     bool clockwise = true;
+
+    std::cout << "si in evalrgswmult " << si << std::endl;
+
+    clockwise = true;
     if (si < 0) {
         clockwise = false;
+        sv        = (((si % modq) + modq) % modq) * (2 * N / modq);
+    }
+    else {
+        sv = (si % modq) * (2 * N / modq);
+    }
+
+    std::cout << "sv in evalrgswmult " << sv << std::endl;
+
+    if (sv >= N) {
+        sv -= N;
     }
 
     if (clockwise) {
-        si = (N)-si;
+        sv = N - sv;
     }
     else {
-        si = -si;
+        sv = modq - sv;
     }
-    auto mod = si % (N);
+
+    std::cout << "sv in evalrgswmult after if " << sv << std::endl;
+    auto mod = sv.ConvertToInt() % (N);
 
     // std::cout << "si mod N in mult: " << mod << std::endl;
     // std::cout << "mod Q in mult: " << modulus << std::endl;
     // perform the multiplication
     for (uint32_t i = 0; i < digitsG2; i++) {
         for (uint32_t j = 0; j < 2; j++) {
-            for (uint32_t k = 0; k < N; k++) {
+            for (int32_t k = 0; k < N; k++) {
                 int32_t res = (mod + k) % N;
                 if (!clockwise) {
-                    if (res < si) {
+                    if (res < sv) {
                         (*newbtkey)[i][j][k] = modulus - (*prevbtkey)[i][j][res];
                     }
                     else {
@@ -189,7 +207,7 @@ RingGSWEvalKey RingGSWAccumulator::RGSWBTEvalMult(const std::shared_ptr<RingGSWC
                     }
                 }
                 else {
-                    if (res < si) {
+                    if (res < sv) {
                         (*newbtkey)[i][j][k] = (*prevbtkey)[i][j][res];
                     }
                     else {
@@ -204,6 +222,10 @@ RingGSWEvalKey RingGSWAccumulator::RGSWBTEvalMult(const std::shared_ptr<RingGSWC
         // std::cout << "original poly1: " << (*prevbtkey)[2 * i + 1][1] << std::endl;
         // std::cout << "rotated poly1: " << (*newbtkey)[2 * i + 1][1] << std::endl;
     }
+
+    // std::cout << "si mod N in mult: " << mod << std::endl;
+    // std::cout << "original poly0: " << (*prevbtkey)[0][1][0] << std::endl;
+    // std::cout << "rotated poly0: " << (*newbtkey)[i][0] << std::endl;
 #if 0
     // std::cout << "before loop " << (*newbtkey)[0][0][0] << std::endl;
     // std::cout << "before loop prev " << (*prevbtkey)[0][0][0] << std::endl;

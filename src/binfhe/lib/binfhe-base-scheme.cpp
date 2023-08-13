@@ -68,7 +68,8 @@ RingGSWBTKey BinFHEScheme::KeyGen(const std::shared_ptr<BinFHECryptoParams> para
 }
 
 RingGSWBTKey BinFHEScheme::KeyGenTest(const std::shared_ptr<BinFHECryptoParams> params, ConstLWEPrivateKey LWEsk,
-                                      NativePoly skNPoly, NativePoly acrs, KEYGEN_MODE keygenMode) const {
+                                      NativePoly skNPoly, NativePoly acrs, LWESwitchingKey kskey,
+                                      KEYGEN_MODE keygenMode) const {
     const auto& LWEParams = params->GetLWEParams();
 
     LWEPrivateKey skN;
@@ -85,7 +86,7 @@ RingGSWBTKey BinFHEScheme::KeyGenTest(const std::shared_ptr<BinFHECryptoParams> 
         OPENFHE_THROW(config_error, "Invalid KeyGen mode");
     }
 
-    ek.KSkey = LWEscheme->KeySwitchGen(LWEParams, LWEsk, skN);
+    ek.KSkey = kskey;  // LWEscheme->KeySwitchGen(LWEParams, LWEsk, skN);
 
     auto& RGSWParams = params->GetRingGSWParams();
     auto polyParams  = RGSWParams->GetPolyParams();
@@ -131,9 +132,7 @@ RingGSWBTKey BinFHEScheme::MultipartyBTKeyGen(const std::shared_ptr<BinFHECrypto
 
     // const LWEPrivateKey skN = std::make_shared<LWEPrivateKeyImpl>(LWEPrivateKeyImpl(zkey.GetValues()));
     RingGSWBTKey ek;
-    auto sv     = LWEsk->GetElement();
-    int32_t mod = sv.GetModulus().ConvertToInt();
-    std::cout << "mod in multiparty bt keygen " << mod << std::endl;
+    auto sv = LWEsk->GetElement();
 #if 0
     if (leadFlag) {
         ek.KSkey = LWEscheme->KeySwitchGen(LWEParams, LWEsk, skN);
@@ -149,9 +148,8 @@ RingGSWBTKey BinFHEScheme::MultipartyBTKeyGen(const std::shared_ptr<BinFHECrypto
     // NativePoly skNPoly = NativePoly(polyParams);
     // skNPoly.SetValues(skN->GetElement(), Format::COEFFICIENT);
     // skNPoly.SetFormat(Format::EVALUATION);
-    std::cout << "before mpkeygenacc" << std::endl;
+
     ek.BSkey = ACCscheme->MultiPartyKeyGenAcc(RGSWParams, zkey, LWEsk, prevbtkey, acrsauto, rgswenc0, leadFlag);
-    std::cout << "after mpkeygenacc" << std::endl;
     // std::cout << "refresh key in MultipartyBTKeyGen: " << (*(*ek.BSkey)[0][0][0])[0][0] << std::endl;
     return ek;
 }
