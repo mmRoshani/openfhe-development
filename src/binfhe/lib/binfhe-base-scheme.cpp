@@ -201,7 +201,6 @@ RingGSWEvalKey BinFHEScheme::RGSWEncrypt(const std::shared_ptr<RingGSWCryptoPara
     auto result       = std::make_shared<RingGSWEvalKeyImpl>(digitsG2, 2);
 
     // Reduce mod q (dealing with negative number as well)
-    // int64_t mm       = (((m % q) + q) % q) * (2 * N / q);
     int64_t mm = ((m % q) + q) % q;
 
     // tempA is introduced to minimize the number of NTTs

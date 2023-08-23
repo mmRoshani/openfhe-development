@@ -139,6 +139,7 @@ void BinFHEContext::GenerateBinFHEContext(BINFHE_PARAMSET set, BINFHE_METHOD met
         //           numberBits|cyclOrder|latticeParam|  mod|   modKS|  stdDev| baseKS| gadgetBase| baseRK| keyDist
         //{ TOY,             { 27,     1024,          64,  512,   PRIME, STD_DEV,     25,    1 <<  9,  23,   GAUSSIAN} },
         { TOY,             { 27,     1024,          64,  512,   PRIME, STD_DEV,     25,    1 <<  9,  23,   UNIFORM_TERNARY} },
+        //{ TOY,             { 12,     32,           16,  16,    1 << 10, STD_DEV,     32,    1 << 4,  8,    UNIFORM_TERNARY} },
         { MEDIUM,          { 28,     2048,         422, 1024, 1 << 14, STD_DEV, 1 << 7,    1 << 10,  32,   UNIFORM_TERNARY} },
         { STD128_LMKCDEY,  { 28,     2048,         458, 1024, 1 << 14, STD_DEV, 1 << 7,    1 << 10,  32,   GAUSSIAN       } },
         { STD128_AP,       { 27,     2048,         512, 1024, 1 << 14, STD_DEV, 1 << 7,    1 <<  9,  32,   UNIFORM_TERNARY} },

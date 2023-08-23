@@ -98,7 +98,9 @@ LWEPublicKey LWEEncryptionScheme::PubKeyGen(const std::shared_ptr<LWECryptoParam
     NativeVector e = dgg.GenerateVector(dim, modulus);
 
     // compute v = As + e
-    NativeVector v   = e;
+    NativeVector v = e;
+    // todosara
+
     NativeVector ske = skN->GetElement();
     NativeInteger mu = modulus.ComputeMu();
 
@@ -147,7 +149,9 @@ LWEPublicKey LWEEncryptionScheme::MultipartyPubKeyGen(const LWEPrivateKey sk, co
 
     // auto sk = KeyGen(dim, modulus);
     // compute v = As + e
-    NativeVector v   = e;
+    NativeVector v = e;
+    // todosara:
+
     NativeVector ske = sk->GetElement();
     NativeInteger mu = modulus.ComputeMu();
 

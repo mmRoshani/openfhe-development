@@ -161,58 +161,34 @@ RingGSWEvalKey RingGSWAccumulator::RGSWBTEvalMult(const std::shared_ptr<RingGSWC
         }
     }
 
-    NativeInteger sv;
-    bool clockwise = true;
-
-    std::cout << "si in evalrgswmult " << si << std::endl;
-
-    clockwise = true;
-    if (si < 0) {
-        clockwise = false;
-        sv        = (((si % modq) + modq) % modq) * (2 * N / modq);
-    }
-    else {
-        sv = (si % modq) * (2 * N / modq);
-    }
-
-    std::cout << "sv in evalrgswmult " << sv << std::endl;
-
+    NativeInteger sv = (((si % modq) + modq) % modq) * (2 * N / modq);
+    bool isreduced   = false;
     if (sv >= N) {
         sv -= N;
+        isreduced = true;
     }
 
-    if (clockwise) {
-        sv = N - sv;
-    }
-    else {
-        sv = modq - sv;
-    }
+    sv = N - sv;
 
-    std::cout << "sv in evalrgswmult after if " << sv << std::endl;
-    auto mod = sv.ConvertToInt() % (N);
+    // std::cout << "sv in evalrgswmult after if " << sv << std::endl;
+    // std::cout << "isreduced: " << isReduced << std::endl;
+    auto smod = sv.ConvertToInt() % (N);
 
-    // std::cout << "si mod N in mult: " << mod << std::endl;
-    // std::cout << "mod Q in mult: " << modulus << std::endl;
+    // std::cout << "sv mod N in mult: " << mod << std::endl;
     // perform the multiplication
     for (uint32_t i = 0; i < digitsG2; i++) {
         for (uint32_t j = 0; j < 2; j++) {
             for (int32_t k = 0; k < N; k++) {
-                int32_t res = (mod + k) % N;
-                if (!clockwise) {
-                    if (res < sv) {
-                        (*newbtkey)[i][j][k] = modulus - (*prevbtkey)[i][j][res];
-                    }
-                    else {
-                        (*newbtkey)[i][j][k] = (*prevbtkey)[i][j][res];
-                    }
+                int32_t res = (smod + k) % N;
+                // std::cout << "res in loop k " << k << " is " << res << std::endl;
+                if (res < sv) {
+                    (*newbtkey)[i][j][k] = (*prevbtkey)[i][j][res];
                 }
                 else {
-                    if (res < sv) {
-                        (*newbtkey)[i][j][k] = (*prevbtkey)[i][j][res];
-                    }
-                    else {
-                        (*newbtkey)[i][j][k] = modulus - (*prevbtkey)[i][j][res];
-                    }
+                    (*newbtkey)[i][j][k] = modulus - (*prevbtkey)[i][j][res];
+                }
+                if (isreduced) {
+                    (*newbtkey)[i][j][k] = modulus - (*newbtkey)[i][j][k];
                 }
             }
         }

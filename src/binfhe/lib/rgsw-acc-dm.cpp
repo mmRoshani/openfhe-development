@@ -132,15 +132,15 @@ RingGSWACCKey RingGSWAccumulatorDM::MultiPartyKeyGenAcc(const std::shared_ptr<Ri
                     s -= modqKS;
                 }
 
-                std::cout << "******************" << std::endl;
-                std::cout << "si in mpkeygenacc " << s << std::endl;
+                // std::cout << "******************" << std::endl;
+                // std::cout << "si in mpkeygenacc " << s << std::endl;
                 // (*ek)[i][j][k] = KeyGenDM(params, skNTT, s * j * (int32_t)digitsR[k].ConvertToInt());
                 // int32_t sm = (((smj % mod)) % mod) * (2 * N / mod);
                 // int32_t sm = (((s % mod) + mod) % mod) * (2 * N / mod);
                 // std::cout << "si in mpkeygenacc after 2N/q " << sm << std::endl;
 
                 int32_t smj = s * j * (int32_t)digitsR[k].ConvertToInt();
-                std::cout << "si passed to evalrgswmult " << smj << std::endl;
+                // std::cout << "si passed to evalrgswmult " << smj << std::endl;
                 (*ek)[i][j][k] = RGSWBTEvalMult(params, (*prevbtkey)[i][j][k], smj);
                 // *((*ek)[i][j][k]) += *(rgswenc0[i]);
             }
@@ -278,6 +278,7 @@ RingGSWEvalKey RingGSWAccumulatorDM::KeyGenDMTest(const std::shared_ptr<RingGSWC
     DiscreteUniformGeneratorImpl<NativeVector> dug;
     dug.SetModulus(Q);
 
+    // std::cout << "mm in keygendmtest before if " << m << std::endl;
     // Reduce mod q (dealing with negative number as well)
     int64_t mm       = (((m % q) + q) % q) * (2 * N / q);
     bool isReducedMM = false;
@@ -286,6 +287,8 @@ RingGSWEvalKey RingGSWAccumulatorDM::KeyGenDMTest(const std::shared_ptr<RingGSWC
         isReducedMM = true;
     }
 
+    // std::cout << "mm in keygendmtest after if " << mm << std::endl;
+    // std::cout << "isreducedMM " << isReducedMM << std::endl;
     // tempA is introduced to minimize the number of NTTs
     std::vector<NativePoly> tempA(digitsG2);
 
@@ -298,6 +301,8 @@ RingGSWEvalKey RingGSWAccumulatorDM::KeyGenDMTest(const std::shared_ptr<RingGSWC
         (*result)[i][1] = NativePoly(polyParams, Format::COEFFICIENT, true);
     }
 
+    // std::cout << "(*result)[0][0] before assign " << (*result)[0][0] << std::endl;
+    // std::cout << "(*result)[0][1] before assign " << (*result)[0][1] << std::endl;
     for (size_t i = 0; i < digitsG; ++i) {
         if (!isReducedMM) {
             // Add G Multiple
@@ -312,6 +317,8 @@ RingGSWEvalKey RingGSWAccumulatorDM::KeyGenDMTest(const std::shared_ptr<RingGSWC
             (*result)[2 * i + 1][1][mm].ModSubEq(Gpow[i], Q);
         }
     }
+    // std::cout << "(*result)[0][0] after assign " << (*result)[0][0] << std::endl;
+    // std::cout << "(*result)[0][1] after assign " << (*result)[0][1] << std::endl;
 
     // 3*digitsG2 NTTs are called
     result->SetFormat(Format::EVALUATION);

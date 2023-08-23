@@ -81,39 +81,6 @@ int main() {
     auto ct2  = cc.Encrypt(pk, 0);
 
     //**********************************
-    std::cout << "sk modulus " << sk1->GetModulus() << std::endl;
-    z1.SetFormat(COEFFICIENT);
-    z2.SetFormat(COEFFICIENT);
-
-    LWEPlaintext result1;
-    LWEPrivateKey sk1N = std::make_shared<LWEPrivateKeyImpl>(LWEPrivateKeyImpl(z1.GetValues()));
-    LWEPrivateKey sk2N = std::make_shared<LWEPrivateKeyImpl>(LWEPrivateKeyImpl(z2.GetValues()));
-
-    auto skv          = sk1N->GetElement() + sk2N->GetElement();
-    LWEPrivateKey ska = std::make_shared<LWEPrivateKeyImpl>(skv);
-    // ska->SetElement(skv);
-    cc.Decrypt(ska, ctN, &result1);
-
-    std::cout << "Result of encrypted computation of (1) ska = " << result1 << std::endl;
-
-    LWEPlaintext result2;
-
-    std::vector<LWECiphertext> pct0Nt;
-    auto pct10 = cc.MultipartyDecryptLead(sk1N, ct0N);
-    auto pct20 = cc.MultipartyDecryptMain(sk2N, ct0N);
-
-    pct0Nt.push_back(pct10);
-    pct0Nt.push_back(pct10);
-
-    cc.MultipartyDecryptFusion(pct0Nt, &result2);
-
-    std::cout << "Result of encrypted computation of (0) distdec N = " << result2 << std::endl;
-
-    LWEPlaintext result3;
-    cc.Decrypt(sk1, ct11, &result3);
-
-    std::cout << "Result of encrypted computation of (1) sk1 = " << result3 << std::endl;
-
     LWEPlaintext result4;
 
     // decryption check before computation
@@ -128,7 +95,7 @@ int main() {
 
     cc.MultipartyDecryptFusion(pct1t, &result4);
 
-    std::cout << "Result of encrypted computation of (1) = " << result4 << std::endl;
+    std::cout << "Result of encrypted computation of (1) dist sk1 + sk2 = " << result4 << std::endl;
 
     LWEPlaintext result5;
     std::vector<LWECiphertext> pct2t;
@@ -142,8 +109,6 @@ int main() {
 
     std::cout << "Result of encrypted computation of (0) dist sk1+sk2 = " << result5 << std::endl;
 
-    z1.SetFormat(EVALUATION);
-    z2.SetFormat(EVALUATION);
     // *****************************
 
     // distributed generation of RGSW_{z_*}(1)
@@ -157,28 +122,6 @@ int main() {
     auto rgsw1 = cc.RGSWEvalAdd(rgsw1_1, rgsw1_2);
 
     std::cout << "rgsw decrypt z1 + z2: " << cc.RGSWDecrypt(rgsw1, z1 + z2) << std::endl;
-#if 0
-    //*****************************
-    auto rgsw1chk = cc.RGSWEncrypt(acrs, z1+z2, 1, true);
-    auto rgsw0chk = cc.RGSWEncrypt(acrs, z1+z2, 0, true);
-    // auto chkelements = rgsw1->GetElements();
-    auto chk1elements = rgsw1chk->GetElements();
-    auto chk0elements = rgsw0chk->GetElements();
-    // std::cout << "chkelemsize " << chkelements.size() << std::endl;
-    // std::cout << "actelemsize " << actelements.size() << std::endl;
-    // std::cout << "chkelemsize[0] " << chkelements[0].size() << std::endl;
-    // std::cout << "actelemsize[0] " << actelements[0].size() << std::endl;
-
-
-    for (size_t i = 0; i < chk1elements.size(); i++) {
-        for (size_t j = 0; j < chk1elements[0].size(); j++) {
-            std::cout << "j " << j << std::endl;
-            std::cout << "chk1elem[" << i << "][" << j << "] = " << chk1elements[i][j] << std::endl;
-            std::cout << "chk0elem[" << i << "][" << j << "] = " << chk0elements[i][j] << std::endl;
-        }
-    }
-#endif
-    //*****************************
 
     // create btkey with RSGW encryption of 1 for every element of the secret
     uint32_t n = sk1->GetElement().GetLength();
@@ -246,18 +189,6 @@ int main() {
     }
 
     std::cout << "********************************" << std::endl;
-#if 0
-    for (uint32_t i = 0; i < n; i++) {
-        std::cout << "sk1[" << i << "]: " << sk1->GetElement()[i] << ", ";
-    }
-    std::cout << std::endl;
-
-    for (uint32_t i = 0; i < n; i++) {
-        std::cout << "sk2[" << i << "]: " << sk2->GetElement()[i] << ", ";
-    }
-    std::cout << std::endl;
-
-#endif
     std::cout << "sk1[0]: " << sk1->GetElement()[0] << std::endl;
     std::cout << "sk2[0]: " << sk2->GetElement()[0] << std::endl;
 
@@ -266,12 +197,9 @@ int main() {
     //-----------------------------------
     // Generate the bootstrapping keys (refresh, switching and public keys)
     cc.MultipartyBTKeyGen(sk1, rgswe1, z1, acrsauto, rgswenc0[0], kskey, true);
-    (*(*cc.GetRefreshKey())[0][1][0])[0][0].SetFormat(COEFFICIENT);
-    std::cout << "refresh key sk1 MultipartyBTKeyGen: " << (*(*cc.GetRefreshKey())[0][1][0])[0][0] << std::endl;
-    (*(*cc.GetRefreshKey())[0][1][0])[0][0].SetFormat(EVALUATION);
-    // cc.BTKeyGenTest(sk1, z1, acrs, kskey);
     // (*(*cc.GetRefreshKey())[0][1][0])[0][0].SetFormat(COEFFICIENT);
-    // std::cout << "refresh key 1st 1: " << (*(*cc.GetRefreshKey())[0][1][0])[0][0] << std::endl;
+    // std::cout << "refresh key sk1 MultipartyBTKeyGen: " << (*(*cc.GetRefreshKey())[0][1][0])[0][0] << std::endl;
+    // (*(*cc.GetRefreshKey())[0][1][0])[0][0].SetFormat(EVALUATION);
 
     cc.MultipartyBTKeyGen(sk2, cc.GetRefreshKey(), z2, acrsauto, rgswenc0[1], kskey);
     (*(*cc.GetRefreshKey())[0][1][0])[0][0].SetFormat(COEFFICIENT);
@@ -280,15 +208,6 @@ int main() {
     (*(*cc.GetRefreshKey())[0][1][0])[0][0].SetFormat(EVALUATION);
 
     auto mprefkey = cc.GetRefreshKey();
-    //-----------------------------
-
-    // cc.MultipartyBTKeyGen(sk12, rgswe1, z1 + z2, acrsauto, rgswenc0[1], kskey, true);
-    // (*(*cc.GetRefreshKey())[0][1][0])[0][0].SetFormat(COEFFICIENT);
-    // std::cout << "refresh key sk1 + sk2 BTKeyGenTest 2nd : " << (*(*cc.GetRefreshKey())[0][1][0])[0][0] << std::endl;
-
-    // cc.BTKeyGenTest(sk12, z1 + z2, acrs);
-    // (*(*cc.GetRefreshKey())[0][1][0])[0][0].SetFormat(COEFFICIENT);
-    // std::cout << "refresh key sk1 + sk2 2nd: " << (*(*cc.GetRefreshKey())[0][1][0])[0][0] << std::endl;
 
     std::cout << "Completed the key generation." << std::endl;
 
@@ -325,7 +244,6 @@ int main() {
 
     auto srefkey = cc.GetRefreshKey();
     auto ctAND2  = cc.EvalBinGate(AND, ct1, ct2);
-    // auto ct1AND1 = cc.EvalBinGate(AND, ct11, ct10);
 
     LWEPlaintext result1c;
 
@@ -351,6 +269,10 @@ int main() {
                         if ((*(*srefkey)[i][j][k])[l][m] != (*(*mprefkey)[i][j][k])[l][m]) {
                             std::cout << "indexes of [n baseR digitR digitsG2 rgswcol]: " << i << " " << j << " " << k
                                       << " " << l << " " << m << std::endl;
+                            (*(*cc.GetRefreshKey())[0][1][0])[0][0].SetFormat(COEFFICIENT);
+                            std::cout << "refresh key sk1+sk2 with MultipartyBTKeyGen not matching: "
+                                      << (*(*cc.GetRefreshKey())[0][1][0])[0][0] << std::endl;
+                            (*(*cc.GetRefreshKey())[0][1][0])[0][0].SetFormat(EVALUATION);
                         }
                     }
                 }
