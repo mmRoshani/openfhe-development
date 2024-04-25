@@ -30,7 +30,7 @@
 //==================================================================================
 
 /*
-  Examples of threshold FHE for BGVrns, BFVrns and CKKS
+  Examples of threshold FHE for BGVrns and BFVrns
  */
 
 #include "openfhe.h"
